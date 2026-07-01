@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Projects — Implementations PM{% endblock %}
+
+{% block content %}
+
+<!-- Filters row -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <ul class="nav nav-tabs mb-0 border-0">
+    {% for label, val in [('All', 'all'), ('Active', 'active'), ('Complete', 'complete')] %}
+    <li class="nav-item">
+      <a class="nav-link {% if active_status == val %}active{% endif %}"
+         href="{{ url_for('project_list', status=val) }}">{{ label }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <div class="d-flex align-items-center gap-3">
+    <!-- IE Owner search -->
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
+      <div class="input-group" style="width:280px;">
+        <span class="input-group-text bg-white border-end-0" style="border-color:#d1d5db;">
+          <i class="bi bi-search text-muted" style="font-size:0.75rem;"></i>
+        </span>
+        <input id="ie-search" type="text" class="form-control border-start-0 ps-0"
+               placeholder="Search by IE name…"
+               value=""
+               style="border-color:#d1d5db;">
+        <button id="ie-clear" class="btn btn-outline-secondary btn-sm px-2 {% if ie_filter == 'all' %}d-none{% endif %}"
+                type="button" title="Clear filter">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    </div>
+
+    <span class="text-muted small">{{ projects|length }} project{{ 's' if projects|length != 1 }}</span>
+  </div>
+</div>
+
+{% if not projects %}
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-folder2-open fs-1 d-block mb-3"></i>
+    No projects yet. <a href="{{ url_for('project_new') }}">Create your first one.</a>
+  </div>
+{% else %}
+<div class="card shadow-sm" style="border-radius:12px; overflow:hidden;">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 project-table">
+      <thead>
+        <tr>
+          <th style="min-width:220px;">Project Name</th>
+          <th>Merchant</th>
+          <th>Status</th>
+          <th>IE Owner</th>
+          <th style="min-width:160px;">Completed Tasks</th>
+          <th class="text-center">Overdue</th>
+          <th>Start</th>
+          <th>Go-Live</th>
+          <th class="text-center">Days Elapsed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in projects %}
+        {% set p = item.project %}
+        {% set prog = item.progress %}
+        <tr class="project-row" onclick="window.location='{{ url_for('project_detail', project_id=p['id']) }}'" style="cursor:pointer;" data-ie-owner="{{ p['ie_owner'] or '' }}">
+
+          <td>
+            <div class="fw-semibold">{{ p['name'] }}</div>
+          </td>
+
+          <td class="text-muted small">{{ p['merchant_name'] or '—' }}</td>
+
+          <td>
+            {% if p['status'] == 'complete' %}
+              <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#3a7d13;">
+                <span class="status-dot" style="background:#7AC943;"></span>Done
+              </span>
+            {% elif item.overdue > 0 %}
+              <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#c0000a;">
+                <span class="status-dot" style="background:#FF1D25;"></span>Late
+                <i class="bi bi-exclamation-triangle-fill ms-1" style="font-size:0.7rem;"></i>
+              </span>
+            {% else %}
+              <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#1B1464;">
+                <span class="status-dot" style="background:#3FA9F5;"></span>Active
+              </span>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if p['ie_owner'] %}
+            <span class="ie-avatar" title="{{ p['ie_owner'] }}">
+              {{ p['ie_owner'].split()[0][0] }}{{ p['ie_owner'].split()[-1][0] if p['ie_owner'].split()|length > 1 else '' }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:8px; min-width:80px;">
+                <div class="progress-bar" style="width:{{ prog.pct }}%"></div>
+              </div>
+              <span class="small text-muted" style="white-space:nowrap;">{{ prog.done }} / {{ prog.total }}</span>
+            </div>
+          </td>
+
+          <td class="text-center">
+            {% if item.overdue > 0 %}
+              <span class="fw-bold" style="color:#c0000a;">{{ item.overdue }}</span>
+            {% else %}
+              <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+
+          <td class="text-muted small">{{ p['contract_start_date'] or '—' }}</td>
+
+          <td class="small {% if p['status'] != 'complete' and p['target_go_live_date'] and p['target_go_live_date'] < today.isoformat() %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+            {{ p['target_go_live_date'] or '—' }}
+          </td>
+
+          <td class="text-center text-muted small">
+            {{ item.elapsed if item.elapsed is not none else '—' }}
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ieSearch = document.getElementById('ie-search');
+const ieClear  = document.getElementById('ie-clear');
+const rows     = document.querySelectorAll('tbody tr.project-row');
+
+function filterRows() {
+  const q = ieSearch.value.trim().toLowerCase();
+  ieClear.classList.toggle('d-none', q === '');
+  rows.forEach(row => {
+    const owner = (row.dataset.ieOwner || '').toLowerCase();
+    row.style.display = (!q || owner.includes(q)) ? '' : 'none';
+  });
+}
+
+ieSearch.addEventListener('input', filterRows);
+ieClear.addEventListener('click', () => { ieSearch.value = ''; filterRows(); ieSearch.focus(); });
+</script>
+{% endblock %}

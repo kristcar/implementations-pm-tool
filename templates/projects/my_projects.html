@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}My Projects — Implementations PM{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h5 class="fw-bold mb-0">My Projects</h5>
+    <div class="text-muted small">{{ current_user }}</div>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-cobalt);">
+      <div class="fw-bold" style="font-size:1.75rem; color:var(--rc-cobalt);">{{ stats.total }}</div>
+      <div class="text-muted small">Total Projects</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-lime);">
+      <div class="fw-bold" style="font-size:1.75rem; color:#3a7d13;">{{ stats.on_time }}</div>
+      <div class="text-muted small">On Track</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-red);">
+      <div class="fw-bold" style="font-size:1.75rem; color:#c0000a;">{{ stats.late }}</div>
+      <div class="text-muted small">Late / Overdue</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-purple);">
+      <div class="fw-bold" style="font-size:1.75rem; color:var(--rc-purple);">{{ stats.avg_pct }}%</div>
+      <div class="text-muted small">Avg. Completion</div>
+    </div>
+  </div>
+</div>
+
+<!-- Status filter tabs -->
+<ul class="nav nav-tabs mb-4">
+  {% for label, val in [('All', 'all'), ('Active', 'active'), ('Complete', 'complete')] %}
+  <li class="nav-item">
+    <a class="nav-link {% if active_status == val %}active{% endif %}"
+       href="{{ url_for('my_projects', status=val) }}">{{ label }}</a>
+  </li>
+  {% endfor %}
+</ul>
+
+{% if not projects %}
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-person-check fs-1 d-block mb-3"></i>
+    No projects assigned to you{% if active_status != 'all' %} with this status{% endif %}.
+  </div>
+{% else %}
+<div class="row g-3">
+  {% for item in projects %}
+  {% set p = item.project %}
+  {% set prog = item.progress %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100 project-card card-{{ p['status'] }}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h6 class="fw-bold mb-0">
+            <a href="{{ url_for('project_detail', project_id=p['id']) }}" class="text-decoration-none text-dark">
+              {{ p['name'] }}
+            </a>
+          </h6>
+          {% if item.overdue > 0 %}
+          <span class="badge ms-2" style="background:#fff0f0; color:#c0000a; font-size:0.7rem;">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ item.overdue }} overdue
+          </span>
+          {% endif %}
+        </div>
+
+        {% if p['merchant_name'] and p['merchant_name'] != p['name'] %}
+          <div class="text-muted small mb-2">{{ p['merchant_name'] }}</div>
+        {% endif %}
+
+        {% if item.days_until is not none %}
+          {% if p['status'] == 'complete' %}
+            <div class="small mb-2" style="color:#3a7d13;"><i class="bi bi-check-circle me-1"></i>Complete</div>
+          {% elif item.days_until < 0 %}
+            <div class="small mb-2 text-danger fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>{{ item.days_until|abs }} days past go-live</div>
+          {% elif item.days_until == 0 %}
+            <div class="small mb-2 text-danger fw-semibold"><i class="bi bi-rocket me-1"></i>Go-live today!</div>
+          {% elif item.days_until <= 14 %}
+            <div class="small mb-2 fw-semibold" style="color:#c46000;"><i class="bi bi-calendar-check me-1"></i>{{ item.days_until }} days to go-live</div>
+          {% else %}
+            <div class="small mb-2 text-muted"><i class="bi bi-calendar me-1"></i>{{ item.days_until }} days to go-live</div>
+          {% endif %}
+        {% endif %}
+
+        <div class="mb-1 d-flex justify-content-between small">
+          <span class="text-muted">Progress</span>
+          <span class="text-muted">{{ prog.done }}/{{ prog.total }} tasks</span>
+        </div>
+        <div class="progress" style="height: 8px;">
+          <div class="progress-bar" style="width: {{ prog.pct }}%"></div>
+        </div>
+      </div>
+
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <span class="status-badge status-{{ p['status'] }}">
+          {{ p['status']|replace('_',' ')|title }}
+        </span>
+        <a href="{{ url_for('project_detail', project_id=p['id']) }}" class="btn btn-sm btn-outline-secondary">
+          Open <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

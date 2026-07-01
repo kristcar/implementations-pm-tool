@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}New Project — Implementations PM{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h4 class="fw-bold mb-4"><i class="bi bi-plus-circle me-2"></i>New Project</h4>
+
+    <form method="POST" action="{{ url_for('project_new') }}">
+
+      <!-- Template chooser -->
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Implementation Template</label>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <input type="radio" class="btn-check" name="template_type" id="tpl_standard" value="standard" checked>
+            <label class="btn btn-outline-primary w-100 h-100 text-start p-3" for="tpl_standard">
+              <div class="fw-bold mb-1"><i class="bi bi-lightning me-1"></i>Standard</div>
+              <div class="small text-muted">SMB merchant, single storefront, no ERP/WMS integrations.</div>
+              <ul class="small text-muted mt-2 mb-0 ps-3">
+                <li>~30 tasks across 6 phases</li>
+                <li>60–90 day timeline</li>
+                <li>Kickoff → Config → UAT → Go-Live</li>
+              </ul>
+            </label>
+          </div>
+          <div class="col-md-6">
+            <input type="radio" class="btn-check" name="template_type" id="tpl_enterprise" value="enterprise">
+            <label class="btn btn-outline-purple w-100 h-100 text-start p-3" for="tpl_enterprise">
+              <div class="fw-bold mb-1"><i class="bi bi-building me-1"></i>Enterprise</div>
+              <div class="small text-muted">Mid-market/enterprise, multi-storefront, ERP/WMS, data migration.</div>
+              <ul class="small text-muted mt-2 mb-0 ps-3">
+                <li>~60 tasks across 8 phases</li>
+                <li>120–180 day timeline</li>
+                <li>SDD → Migration → Integrations → Go-Live</li>
+              </ul>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">Project Details</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Project Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="Acme Co — ReCharge Implementation" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Merchant Name</label>
+              <input type="text" name="merchant_name" class="form-control" placeholder="Acme Co">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Implementation Engineer</label>
+              <input type="text" name="ie_owner" class="form-control" placeholder="Jane Smith">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Platform</label>
+              <select name="platform" class="form-select">
+                <option value="">Select platform…</option>
+                <option>Shopify</option>
+                <option>Shopify Plus</option>
+                <option>BigCommerce</option>
+                <option>Salesforce Commerce Cloud</option>
+                <option>Custom / Headless</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Contract Start Date</label>
+              <input type="date" name="contract_start_date" class="form-control">
+              <div class="form-text">Used to calculate task due dates from the template.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Target Go-Live Date</label>
+              <input type="date" name="target_go_live_date" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" class="form-control" rows="3" placeholder="Any special scope, custom commitments, or context…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>Create Project
+        </button>
+        <a href="{{ url_for('project_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,220 @@
+{% if not standalone %}{% extends "base.html" %}{% endif %}
+
+{% if standalone %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Implementation Proposal — {{ project['name'] }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px; color: #1a1a1a; }
+    h1 { font-size: 2rem; margin-bottom: 4px; }
+    h2 { font-size: 1.25rem; border-bottom: 2px solid #0d6efd; padding-bottom: 6px; margin-top: 2rem; color: #0d6efd; }
+    h3 { font-size: 1rem; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th { background: #f0f4ff; text-align: left; padding: 8px 12px; font-size: 0.85rem; }
+    td { padding: 7px 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    .badge-ie { background: #dbeafe; color: #1e40af; }
+    .badge-merchant { background: #fef9c3; color: #854d0e; }
+    .badge-shared { background: #e9d5ff; color: #6b21a8; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin: 1rem 0; }
+    .meta-item label { font-size: 0.75rem; color: #666; display: block; }
+    .meta-item span { font-weight: bold; }
+    .milestone-row td:first-child { font-weight: 600; }
+    .cover { text-align: center; padding: 60px 0 40px; border-bottom: 3px solid #0d6efd; margin-bottom: 2rem; }
+    .cover .subtitle { color: #666; font-size: 1.1rem; margin-top: 8px; }
+    .progress-label { float: right; font-size: 0.8rem; color: #666; }
+    .progress-bar-outer { background: #e5e7eb; border-radius: 4px; height: 8px; margin: 4px 0 12px; }
+    .progress-bar-inner { background: #0d6efd; height: 8px; border-radius: 4px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+{% endif %}
+
+{% block content %}
+<div class="proposal-wrap">
+
+{% if not standalone %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('project_list') }}">Projects</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project['id']) }}">{{ project['name'] }}</a></li>
+        <li class="breadcrumb-item active">Proposal</li>
+      </ol>
+    </nav>
+    <h4 class="fw-bold mb-0">Implementation Proposal</h4>
+  </div>
+  <div class="d-flex gap-2 no-print">
+    <a href="{{ url_for('project_proposal_export', project_id=project['id']) }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-download me-1"></i>Export HTML
+    </a>
+    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i>Print / PDF
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<!-- Cover -->
+<div class="{% if standalone %}cover{% else %}text-center py-5 border-bottom mb-4{% endif %}">
+  <div class="{% if not standalone %}text-muted small mb-2{% endif %}">Implementation Proposal</div>
+  <h1 class="{% if not standalone %}display-5 fw-bold{% endif %}">{{ project['merchant_name'] or project['name'] }}</h1>
+  <div class="{% if standalone %}subtitle{% else %}text-muted mt-1{% endif %}">
+    {{ project['template_type']|title }} Implementation · ReCharge Payments
+  </div>
+  {% if project['ie_owner'] %}
+  <div class="{% if not standalone %}text-muted small mt-1{% endif %}">IE: {{ project['ie_owner'] }}</div>
+  {% endif %}
+</div>
+
+<!-- Project Overview -->
+<h2 {% if not standalone %}class="h5 fw-bold border-bottom pb-2 mt-4 text-primary"{% endif %}>Project Overview</h2>
+<div class="{% if not standalone %}row g-3 mb-4{% else %}meta-grid{% endif %}">
+  {% set meta_items = [
+    ('Merchant', project['merchant_name'] or project['name']),
+    ('Platform', project['platform'] or '—'),
+    ('Template', project['template_type']|title),
+    ('IE Owner', project['ie_owner'] or '—'),
+    ('Contract Start', project['contract_start_date'] or '—'),
+    ('Target Go-Live', project['target_go_live_date'] or '—'),
+  ] %}
+  {% for label, val in meta_items %}
+  <div class="{% if standalone %}meta-item{% else %}col-md-4{% endif %}">
+    <label class="{% if not standalone %}text-muted small d-block{% endif %}">{{ label }}</label>
+    <span class="{% if not standalone %}fw-semibold{% endif %}">{{ val }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+{% if project['notes'] %}
+<p><em>{{ project['notes'] }}</em></p>
+{% endif %}
+
+<!-- Milestone Timeline -->
+<h2 {% if not standalone %}class="h5 fw-bold border-bottom pb-2 mt-4 text-primary"{% endif %}>Project Timeline</h2>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Milestone</th>
+      <th>Target Date</th>
+      <th>Actual Date</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in milestones %}
+    <tr class="milestone-row">
+      <td>{{ loop.index }}</td>
+      <td>{{ m['name'] }}</td>
+      <td>{{ m['target_date'] or '—' }}</td>
+      <td>{{ m['actual_date'] or '—' }}</td>
+      <td>{{ m['status']|replace('_',' ')|title }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Task Responsibility Matrix -->
+<h2 {% if not standalone %}class="h5 fw-bold border-bottom pb-2 mt-4 text-primary"{% endif %}>Task Responsibility Matrix</h2>
+<p {% if not standalone %}class="text-muted small"{% endif %}>
+  <strong>IE</strong> = Implementation Engineer &nbsp;|&nbsp;
+  <strong>Merchant</strong> = Client team &nbsp;|&nbsp;
+  <strong>Shared</strong> = Both parties
+</p>
+
+{% for item in groups %}
+{% set g = item.group %}
+{% set pct = (item.done / item.total * 100)|int if item.total else 0 %}
+<h3 {% if not standalone %}class="fw-semibold mt-4 mb-2"{% endif %}>{{ g['name'] }}</h3>
+
+{% if standalone %}
+<div class="progress-bar-outer"><div class="progress-bar-inner" style="width:{{ pct }}%"></div></div>
+{% else %}
+<div class="progress mb-2" style="height:6px;">
+  <div class="progress-bar {% if pct==100 %}bg-success{% else %}bg-primary{% endif %}" style="width:{{ pct }}%"></div>
+</div>
+{% endif %}
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:55%">Task</th>
+      <th style="width:15%">Owner</th>
+      <th style="width:20%">Due Date</th>
+      <th style="width:10%">Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for task in item.tasks %}
+    <tr>
+      <td>{{ task['title'] }}</td>
+      <td>
+        <span class="badge badge-{{ task['owner'] or 'ie' }}">
+          {{ (task['owner'] or 'ie')|upper }}
+        </span>
+      </td>
+      <td>{{ task['due_date'] or '—' }}</td>
+      <td>{{ task['status']|replace('_',' ')|title if task['status'] else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endfor %}
+
+<!-- Go-Live Checklist -->
+<h2 {% if not standalone %}class="h5 fw-bold border-bottom pb-2 mt-4 text-primary"{% endif %}>Go-Live Checklist</h2>
+<table>
+  <thead>
+    <tr><th>Item</th><th>Owner</th><th>Complete</th></tr>
+  </thead>
+  <tbody>
+    {% set checklist = [
+      ('Subscription products configured and tested', 'IE'),
+      ('Customer portal reviewed and approved', 'Merchant'),
+      ('Payment retry / dunning configured', 'IE'),
+      ('All integrations tested end-to-end', 'IE'),
+      ('UAT sign-off received', 'Merchant'),
+      ('Go-live runbook prepared', 'IE'),
+      ('Rollback plan documented', 'IE'),
+      ('Merchant team trained', 'IE'),
+      ('Analytics / tracking verified', 'IE'),
+      ('DNS / domain changes planned (if needed)', 'Shared'),
+    ] %}
+    {% for item, owner in checklist %}
+    <tr>
+      <td>{{ item }}</td>
+      <td><span class="badge badge-{{ owner|lower }}">{{ owner|upper }}</span></td>
+      <td>☐</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Overall Progress -->
+<h2 {% if not standalone %}class="h5 fw-bold border-bottom pb-2 mt-4 text-primary"{% endif %}>Overall Progress</h2>
+<p>{{ progress.done }} of {{ progress.total }} tasks complete ({{ progress.pct }}%)</p>
+{% if standalone %}
+<div class="progress-bar-outer"><div class="progress-bar-inner" style="width:{{ progress.pct }}%"></div></div>
+{% else %}
+<div class="progress mb-4" style="height: 12px;">
+  <div class="progress-bar {% if progress.pct==100 %}bg-success{% else %}bg-primary{% endif %}"
+       style="width:{{ progress.pct }}%"></div>
+</div>
+{% endif %}
+
+<p class="{% if not standalone %}text-muted small{% endif %}" style="margin-top:2rem;">
+  Generated {{ now if now else '' }} · ReCharge Implementations Team
+</p>
+
+</div>
+{% endblock %}
+
+{% if standalone %}
+</body>
+</html>
+{% endif %}

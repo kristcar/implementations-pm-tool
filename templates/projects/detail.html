@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}{{ project['name'] }} — Implementations PM{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('project_list') }}">Projects</a></li>
+        <li class="breadcrumb-item active">{{ project['name'] }}</li>
+      </ol>
+    </nav>
+    <h4 class="fw-bold mb-0">{{ project['name'] }}</h4>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('project_timeline', project_id=project['id']) }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-bar-chart-steps me-1"></i>Timeline
+    </a>
+    <a href="{{ url_for('project_proposal', project_id=project['id']) }}" class="btn btn-outline-secondary btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-text me-1"></i>Proposal
+    </a>
+    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editProjectModal">
+      <i class="bi bi-pencil me-1"></i>Edit
+    </button>
+  </div>
+</div>
+
+<!-- Project meta bar -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-body py-2">
+    <div class="row g-3 align-items-center">
+      <div class="col-auto">
+        <span class="badge status-badge status-{{ project['status'] }} fs-6">
+          {{ project['status']|replace('_',' ')|title }}
+        </span>
+      </div>
+      {% if project['ie_owner'] %}
+      <div class="col-auto text-muted small"><i class="bi bi-person me-1"></i>{{ project['ie_owner'] }}</div>
+      {% endif %}
+      {% if project['contract_start_date'] %}
+      <div class="col-auto text-muted small"><i class="bi bi-calendar me-1"></i>Start: {{ project['contract_start_date'] }}</div>
+      {% endif %}
+      {% if project['target_go_live_date'] %}
+      <div class="col-auto text-muted small"><i class="bi bi-calendar-check me-1"></i>Go-live: <strong>{{ project['target_go_live_date'] }}</strong></div>
+      {% endif %}
+      <div class="col-auto ms-auto">
+        <span class="small text-muted me-2">{{ progress.done }}/{{ progress.total }} tasks</span>
+        <span class="fw-bold {% if progress.pct == 100 %}text-success{% endif %}">{{ progress.pct }}%</span>
+      </div>
+    </div>
+    <div class="progress mt-2" style="height:6px;">
+      <div class="progress-bar {% if progress.pct == 100 %}bg-success{% else %}bg-primary{% endif %}"
+           id="overall-progress-bar" style="width:{{ progress.pct }}%"></div>
+    </div>
+  </div>
+</div>
+
+{% if timeline_message %}
+<div class="alert alert-light border mb-4">
+  <i class="bi bi-clock me-2 text-muted"></i>{{ timeline_message }}
+</div>
+{% endif %}
+
+<!-- Milestones strip -->
+{% if milestones %}
+<div class="d-flex gap-2 flex-wrap mb-4">
+  {% for m in milestones %}
+  <div class="milestone-chip status-{{ m['status'] }}">
+    <i class="bi bi-flag-fill me-1 small"></i>{{ m['name'] }}
+    {% if m['target_date'] %}<span class="ms-1 opacity-75">{{ m['target_date'] }}</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Task groups -->
+{% for item in groups %}
+{% set g = item.group %}
+{% set tasks = item.tasks %}
+{% set total = item.total %}
+{% set done = item.done %}
+{% set pct = (done / total * 100)|int if total else 0 %}
+
+<div class="card mb-3 phase-{{ loop.index0 }}">
+  <div class="card-header d-flex align-items-center justify-content-between py-2">
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-semibold">{{ g['name'] }}</span>
+      <span class="badge bg-secondary">{{ done }}/{{ total }}</span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="progress group-progress-bar" style="width:120px; height:6px;">
+        <div class="progress-bar {% if pct==100 %}bg-success{% else %}bg-primary{% endif %}"
+             data-group-id="{{ g['id'] }}"
+             style="width:{{ pct }}%"></div>
+      </div>
+      <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="collapse"
+              data-bs-target="#group-{{ g['id'] }}" title="Toggle">
+        <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
+  </div>
+  <div class="collapse show" id="group-{{ g['id'] }}">
+    <div class="list-group list-group-flush">
+      {% for task in tasks %}
+      <div class="list-group-item task-row {% if task['status'] == 'complete' %}task-complete{% endif %}"
+           id="task-row-{{ task['id'] }}">
+        <div class="d-flex align-items-center gap-3">
+          <input type="checkbox"
+                 class="form-check-input task-checkbox flex-shrink-0"
+                 data-task-id="{{ task['id'] }}"
+                 {% if task['status'] == 'complete' %}checked{% endif %}>
+          <div class="flex-grow-1 min-w-0">
+            <span class="task-title {% if task['status'] == 'complete' %}text-decoration-line-through text-muted{% endif %}">
+              {{ task['title'] }}
+            </span>
+            {% if task['description'] %}
+            <div class="text-muted small text-truncate">{{ task['description'] }}</div>
+            {% endif %}
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            {% if task['owner'] %}
+            <span class="badge owner-badge owner-{{ task['owner'] }}">{{ task['owner']|upper }}</span>
+            {% endif %}
+            {% if task['due_date'] %}
+            <span class="small text-muted">{{ task['due_date'] }}</span>
+            {% endif %}
+            <button class="btn btn-sm btn-link text-muted p-0"
+                    data-bs-toggle="modal" data-bs-target="#editTaskModal"
+                    data-task-id="{{ task['id'] }}"
+                    data-task-title="{{ task['title'] }}"
+                    data-task-description="{{ task['description'] or '' }}"
+                    data-task-owner="{{ task['owner'] or 'ie' }}"
+                    data-task-due="{{ task['due_date'] or '' }}"
+                    data-task-notes="{{ task['notes'] or '' }}"
+                    data-task-status="{{ task['status'] }}"
+                    title="Edit task">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Add task inline -->
+      <div class="list-group-item bg-light">
+        <button class="btn btn-sm btn-link text-muted p-0 add-task-btn"
+                data-group-id="{{ g['id'] }}"
+                data-group-name="{{ g['name'] }}"
+                data-bs-toggle="modal" data-bs-target="#addTaskModal">
+          <i class="bi bi-plus me-1"></i>Add task
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ── Modals ── -->
+
+<!-- Edit Project -->
+<div class="modal fade" id="editProjectModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Project</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('project_edit', project_id=project['id']) }}">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Project Name</label>
+              <input type="text" name="name" class="form-control" value="{{ project['name'] }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Merchant Name</label>
+              <input type="text" name="merchant_name" class="form-control" value="{{ project['merchant_name'] or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">IE Owner</label>
+              <input type="text" name="ie_owner" class="form-control" value="{{ project['ie_owner'] or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Platform</label>
+              <select name="platform" class="form-select">
+                <option value="">Select…</option>
+                {% for pl in ['Shopify', 'Shopify Plus', 'BigCommerce', 'Salesforce Commerce Cloud', 'Custom / Headless'] %}
+                <option {% if project['platform'] == pl %}selected{% endif %}>{{ pl }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-select">
+                {% for s in ['active', 'complete'] %}
+                <option value="{{ s }}" {% if project['status'] == s %}selected{% endif %}>
+                  {{ s|replace('_',' ')|title }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Contract Start</label>
+              <input type="date" name="contract_start_date" class="form-control" value="{{ project['contract_start_date'] or '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Target Go-Live</label>
+              <input type="date" name="target_go_live_date" class="form-control" value="{{ project['target_go_live_date'] or '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Actual Go-Live</label>
+              <input type="date" name="actual_go_live_date" class="form-control" value="{{ project['actual_go_live_date'] or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" class="form-control" rows="3">{{ project['notes'] or '' }}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger me-auto"
+                  onclick="if(confirm('Delete this project?')) { document.getElementById('deleteProjectForm').submit(); }">
+            <i class="bi bi-trash me-1"></i>Delete Project
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<form id="deleteProjectForm" method="POST" action="{{ url_for('project_delete', project_id=project['id']) }}" style="display:none;"></form>
+
+<!-- Add Task -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Task</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('task_add', project_id=project['id']) }}">
+        <input type="hidden" name="task_group_id" id="addTaskGroupId">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Group</label>
+            <input type="text" class="form-control" id="addTaskGroupName" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Task Title <span class="text-danger">*</span></label>
+            <input type="text" name="title" class="form-control" required>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label">Owner</label>
+              <select name="owner" class="form-select">
+                <option value="ie">IE</option>
+                <option value="merchant">Merchant</option>
+                <option value="shared">Shared</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Due Date</label>
+              <input type="date" name="due_date" class="form-control">
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Task -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Task</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="editTaskForm" action="">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Task Title</label>
+            <input type="text" name="title" id="editTaskTitle" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" id="editTaskDescription" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label">Owner</label>
+              <select name="owner" id="editTaskOwner" class="form-select">
+                <option value="ie">IE</option>
+                <option value="merchant">Merchant</option>
+                <option value="shared">Shared</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Due Date</label>
+              <input type="date" name="due_date" id="editTaskDue" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status</label>
+              <select name="status" id="editTaskStatus" class="form-select">
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="complete">Complete</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" id="editTaskNotes" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger me-auto" id="deleteTaskBtn">
+            <i class="bi bi-trash me-1"></i>Delete
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+      <form id="deleteTaskForm" method="POST" action="" style="display:none;"></form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Populate add task modal
+document.querySelectorAll('.add-task-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('addTaskGroupId').value = btn.dataset.groupId;
+    document.getElementById('addTaskGroupName').value = btn.dataset.groupName;
+  });
+});
+
+// Populate edit task modal
+document.querySelectorAll('[data-bs-target="#editTaskModal"]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.taskId;
+    document.getElementById('editTaskForm').action = `/tasks/${id}/edit`;
+    document.getElementById('deleteTaskForm').action = `/tasks/${id}/delete`;
+    document.getElementById('editTaskTitle').value = btn.dataset.taskTitle;
+    document.getElementById('editTaskDescription').value = btn.dataset.taskDescription;
+    document.getElementById('editTaskOwner').value = btn.dataset.taskOwner;
+    document.getElementById('editTaskDue').value = btn.dataset.taskDue;
+    document.getElementById('editTaskNotes').value = btn.dataset.taskNotes;
+    document.getElementById('editTaskStatus').value = btn.dataset.taskStatus;
+  });
+});
+
+document.getElementById('deleteTaskBtn').addEventListener('click', () => {
+  if (confirm('Delete this task?')) document.getElementById('deleteTaskForm').submit();
+});
+
+// Task checkbox AJAX toggle
+document.querySelectorAll('.task-checkbox').forEach(cb => {
+  cb.addEventListener('change', async function() {
+    const taskId = this.dataset.taskId;
+    const resp = await fetch(`/tasks/${taskId}/status`, { method: 'POST' });
+    const data = await resp.json();
+    const row = document.getElementById(`task-row-${taskId}`);
+    const titleEl = row.querySelector('.task-title');
+    if (data.status === 'complete') {
+      row.classList.add('task-complete');
+      titleEl.classList.add('text-decoration-line-through', 'text-muted');
+    } else {
+      row.classList.remove('task-complete');
+      titleEl.classList.remove('text-decoration-line-through', 'text-muted');
+    }
+    // Update overall progress
+    const prog = data.progress;
+    document.getElementById('overall-progress-bar').style.width = prog.pct + '%';
+  });
+});
+</script>
+{% endblock %}
