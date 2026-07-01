@@ -6,7 +6,7 @@
 <!-- Filters row -->
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
   <ul class="nav nav-tabs mb-0 border-0">
-    {% for label, val in [('All', 'all'), ('Active', 'active'), ('Complete', 'complete')] %}
+    {% for label, val in [('All', 'all'), ('Active', 'active'), ('Complete', 'complete'), ('Cancelled', 'cancelled')] %}
     <li class="nav-item">
       <a class="nav-link {% if active_status == val %}active{% endif %}"
          href="{{ url_for('project_list', status=val) }}">{{ label }}</a>
@@ -50,6 +50,7 @@
         <tr>
           <th style="min-width:220px;">Project Name</th>
           <th>Merchant</th>
+          <th>Pathway</th>
           <th>Status</th>
           <th>IE Owner</th>
           <th style="min-width:160px;">Completed Tasks</th>
@@ -72,9 +73,24 @@
           <td class="text-muted small">{{ p['merchant_name'] or '—' }}</td>
 
           <td>
+            {% if p['template_type'] %}
+            {% set tpl_labels = {
+              'optimized_activation': 'Optimized Activation',
+              'optimized_subscription_migration': 'Optimized Subscription Migration',
+              'recharge_strategic_migration': 'Strategic Implementation'
+            } %}
+            <span class="tpl-badge tpl-{{ p['template_type'] }}">{{ tpl_labels.get(p['template_type'], p['template_type']) }}</span>
+            {% else %}—{% endif %}
+          </td>
+
+          <td>
             {% if p['status'] == 'complete' %}
               <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#3a7d13;">
                 <span class="status-dot" style="background:#7AC943;"></span>Done
+              </span>
+            {% elif p['status'] == 'cancelled' %}
+              <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#6b7280;">
+                <span class="status-dot" style="background:#9ca3af;"></span>Cancelled
               </span>
             {% elif item.overdue > 0 %}
               <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#c0000a;">

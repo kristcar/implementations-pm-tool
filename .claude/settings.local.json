@@ -28,7 +28,10 @@
       "Bash(python3 app.py > /tmp/flask.log 2>&1 & *)",
       "Bash(git config *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'Initial commit: Implementations PM Tool *)"
+      "Bash(git commit -m 'Initial commit: Implementations PM Tool *)",
+      "Bash(sqlite3 /Users/kristincaras/Desktop/Implementations_PM_Tool/instance/pm_tool.db \"SELECT id, name, template_type FROM projects;\")",
+      "Bash(sqlite3 /Users/kristincaras/Desktop/Implementations_PM_Tool/instance/pm_tool.db ' *)",
+      "Bash(git commit -m 'Add pathway badges, IE search, My Projects stats, Cancelled status, and sort order *)"
     ]
   }
 }

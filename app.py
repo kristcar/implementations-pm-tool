@@ -35,6 +35,18 @@ def project_list():
         except ValueError:
             elapsed = None
         enriched.append({"project": p, "progress": prog, "overdue": overdue, "elapsed": elapsed})
+
+    def sort_key(item):
+        s = item["project"]["status"]
+        if s == "active" and item["overdue"] > 0:
+            return 0  # Late first
+        if s == "active":
+            return 1  # Active second
+        if s == "complete":
+            return 2  # Done third
+        return 3      # Cancelled last
+
+    enriched.sort(key=sort_key)
     return render_template("projects/list.html", projects=enriched, active_status=status, ie_owners=ie_owners, today=today)
 
 

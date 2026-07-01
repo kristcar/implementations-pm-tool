@@ -192,7 +192,7 @@
             <div class="col-md-4">
               <label class="form-label">Status</label>
               <select name="status" class="form-select">
-                {% for s in ['active', 'complete'] %}
+                {% for s in ['active', 'complete', 'cancelled'] %}
                 <option value="{{ s }}" {% if project['status'] == s %}selected{% endif %}>
                   {{ s|replace('_',' ')|title }}
                 </option>
@@ -222,7 +222,11 @@
                   onclick="if(confirm('Delete this project?')) { document.getElementById('deleteProjectForm').submit(); }">
             <i class="bi bi-trash me-1"></i>Delete Project
           </button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-outline-secondary"
+                  onclick="if(confirm('Mark this project as cancelled?')) { document.getElementById('cancelProjectForm').submit(); }">
+            <i class="bi bi-x-circle me-1"></i>Cancel Project
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="submit" class="btn btn-primary">Save Changes</button>
         </div>
       </form>
@@ -230,6 +234,10 @@
   </div>
 </div>
 <form id="deleteProjectForm" method="POST" action="{{ url_for('project_delete', project_id=project['id']) }}" style="display:none;"></form>
+<form id="cancelProjectForm" method="POST" action="{{ url_for('project_edit', project_id=project['id']) }}" style="display:none;">
+  <input type="hidden" name="status" value="cancelled">
+  <input type="hidden" name="name" value="{{ project['name'] }}">
+</form>
 
 <!-- Add Task -->
 <div class="modal fade" id="addTaskModal" tabindex="-1">

@@ -39,7 +39,7 @@
 
 <!-- Status filter tabs -->
 <ul class="nav nav-tabs mb-4">
-  {% for label, val in [('All', 'all'), ('Active', 'active'), ('Complete', 'complete')] %}
+  {% for label, val in [('All', 'all'), ('Active', 'active'), ('Complete', 'complete'), ('Cancelled', 'cancelled')] %}
   <li class="nav-item">
     <a class="nav-link {% if active_status == val %}active{% endif %}"
        href="{{ url_for('my_projects', status=val) }}">{{ label }}</a>
@@ -61,11 +61,21 @@
     <div class="card h-100 project-card card-{{ p['status'] }}">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <h6 class="fw-bold mb-0">
-            <a href="{{ url_for('project_detail', project_id=p['id']) }}" class="text-decoration-none text-dark">
-              {{ p['name'] }}
-            </a>
-          </h6>
+          <div>
+            <h6 class="fw-bold mb-1">
+              <a href="{{ url_for('project_detail', project_id=p['id']) }}" class="text-decoration-none text-dark">
+                {{ p['name'] }}
+              </a>
+            </h6>
+            {% if p['template_type'] %}
+            {% set tpl_labels = {
+              'optimized_activation': 'Optimized Activation',
+              'optimized_subscription_migration': 'Optimized Subscription Migration',
+              'recharge_strategic_migration': 'Strategic Implementation'
+            } %}
+            <span class="tpl-badge tpl-{{ p['template_type'] }}">{{ tpl_labels.get(p['template_type'], p['template_type']) }}</span>
+            {% endif %}
+          </div>
           {% if item.overdue > 0 %}
           <span class="badge ms-2" style="background:#fff0f0; color:#c0000a; font-size:0.7rem;">
             <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ item.overdue }} overdue

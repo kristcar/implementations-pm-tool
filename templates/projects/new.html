@@ -12,28 +12,25 @@
       <div class="mb-4">
         <label class="form-label fw-semibold">Implementation Template</label>
         <div class="row g-3">
-          <div class="col-md-6">
-            <input type="radio" class="btn-check" name="template_type" id="tpl_standard" value="standard" checked>
-            <label class="btn btn-outline-primary w-100 h-100 text-start p-3" for="tpl_standard">
-              <div class="fw-bold mb-1"><i class="bi bi-lightning me-1"></i>Standard</div>
-              <div class="small text-muted">SMB merchant, single storefront, no ERP/WMS integrations.</div>
-              <ul class="small text-muted mt-2 mb-0 ps-3">
-                <li>~30 tasks across 6 phases</li>
-                <li>60–90 day timeline</li>
-                <li>Kickoff → Config → UAT → Go-Live</li>
-              </ul>
+          <div class="col-md-4">
+            <input type="radio" class="btn-check" name="template_type" id="tpl_optimized_activation" value="optimized_activation" checked>
+            <label class="btn btn-tpl-activation w-100 h-100 text-start p-3" for="tpl_optimized_activation">
+              <div class="fw-bold mb-1"><i class="bi bi-lightning me-1"></i>Optimized Activation</div>
+              <div class="small" style="color:#0129F1; opacity:0.75;">New merchant activating ReCharge for the first time.</div>
             </label>
           </div>
-          <div class="col-md-6">
-            <input type="radio" class="btn-check" name="template_type" id="tpl_enterprise" value="enterprise">
-            <label class="btn btn-outline-purple w-100 h-100 text-start p-3" for="tpl_enterprise">
-              <div class="fw-bold mb-1"><i class="bi bi-building me-1"></i>Enterprise</div>
-              <div class="small text-muted">Mid-market/enterprise, multi-storefront, ERP/WMS, data migration.</div>
-              <ul class="small text-muted mt-2 mb-0 ps-3">
-                <li>~60 tasks across 8 phases</li>
-                <li>120–180 day timeline</li>
-                <li>SDD → Migration → Integrations → Go-Live</li>
-              </ul>
+          <div class="col-md-4">
+            <input type="radio" class="btn-check" name="template_type" id="tpl_optimized_subscription_migration" value="optimized_subscription_migration">
+            <label class="btn btn-tpl-migration w-100 h-100 text-start p-3" for="tpl_optimized_subscription_migration">
+              <div class="fw-bold mb-1"><i class="bi bi-arrow-left-right me-1"></i>Optimized Subscription Migration</div>
+              <div class="small" style="color:#6b7a00; opacity:0.85;">Merchant migrating subscriptions from another platform.</div>
+            </label>
+          </div>
+          <div class="col-md-4">
+            <input type="radio" class="btn-check" name="template_type" id="tpl_recharge_strategic_migration" value="recharge_strategic_migration">
+            <label class="btn btn-tpl-strategic w-100 h-100 text-start p-3" for="tpl_recharge_strategic_migration">
+              <div class="fw-bold mb-1"><i class="bi bi-diagram-3 me-1"></i>Strategic Implementation</div>
+              <div class="small" style="color:#c0293c; opacity:0.85;">Complex migration requiring strategic planning and phased rollout.</div>
             </label>
           </div>
         </div>
@@ -53,7 +50,12 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Implementation Engineer</label>
-              <input type="text" name="ie_owner" class="form-control" placeholder="Jane Smith">
+              <select name="ie_owner" class="form-select">
+                <option value="">— Select IE —</option>
+                <option value="Kristin Caras">Kristin Caras</option>
+                <option value="Marcus Webb">Marcus Webb</option>
+                <option value="Priya Nair">Priya Nair</option>
+              </select>
             </div>
             <div class="col-md-6">
               <label class="form-label">Platform</label>

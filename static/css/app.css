@@ -126,15 +126,17 @@ body { background-color: #f7f8fc; }
 .project-card .card-footer { border-top: 1px solid #f0f0f4 !important; background: transparent !important; padding: 12px 20px; }
 
 /* Colored top stripe per status */
-.project-card.card-active   { border-top: 4px solid var(--rc-rose) !important; }
-.project-card.card-complete { border-top: 4px solid #b57bee !important; }
+.project-card.card-active    { border-top: 4px solid var(--rc-rose) !important; }
+.project-card.card-complete  { border-top: 4px solid #b57bee !important; }
+.project-card.card-cancelled { border-top: 4px solid #9ca3af !important; }
 
 /* ── Status badges ── */
 .status-badge { font-size: 0.72rem; padding: 3px 10px; border-radius: 20px; font-weight: 700; letter-spacing: 0.02em; }
 .status-active   { background: #e8f0fe; color: var(--rc-cobalt); }
 .status-complete { background: #edf9e4; color: #3a7d13; }
-.status-upcoming { background: #f1f5f9; color: #475569; }
-.status-at_risk  { background: #fff0f0; color: #c0000a; }
+.status-upcoming   { background: #f1f5f9; color: #475569; }
+.status-at_risk    { background: #fff0f0; color: #c0000a; }
+.status-cancelled  { background: #f3f4f6; color: #6b7280; }
 
 /* ── Owner badges ── */
 .owner-badge { font-size: 0.65rem; padding: 2px 7px; border-radius: 5px; font-weight: 700; letter-spacing: 0.03em; }
@@ -241,6 +243,54 @@ body { background-color: #f7f8fc; }
 /* ── Cards general ── */
 .card { border-radius: 12px; border: 1px solid #eaecf4; }
 .card-header { background: #fafbfe; border-bottom: 1px solid #eaecf4; }
+
+/* ── Template badges ── */
+.tpl-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.tpl-optimized_activation             { background: #d6dbfd; color: #0129F1; }
+.tpl-optimized_subscription_migration { background: #f4f9c2; color: #6b7a00; }
+.tpl-recharge_strategic_migration     { background: #fde0e4; color: #c0293c; }
+.tpl-standard                         { background: #d6dbfd; color: #0129F1; }
+.tpl-enterprise                       { background: #fde0e4; color: #c0293c; }
+
+/* ── Template chooser buttons ── */
+.btn-tpl-activation {
+  border: 2px solid #0129F1;
+  color: #0129F1;
+  background: #d6dbfd;
+}
+.btn-tpl-activation:hover, .btn-check:checked + .btn-tpl-activation {
+  background: #0129F1;
+  color: #fff;
+  border-color: #0129F1;
+}
+.btn-tpl-migration {
+  border: 2px solid #DCEC5A;
+  color: #6b7a00;
+  background: #f4f9c2;
+}
+.btn-tpl-migration:hover, .btn-check:checked + .btn-tpl-migration {
+  background: #DCEC5A;
+  color: #3a4200;
+  border-color: #DCEC5A;
+}
+.btn-tpl-strategic {
+  border: 2px solid #EF6376;
+  color: #c0293c;
+  background: #fde0e4;
+}
+.btn-tpl-strategic:hover, .btn-check:checked + .btn-tpl-strategic {
+  background: #EF6376;
+  color: #fff;
+  border-color: #EF6376;
+}
 
 /* ── IE filter button group ── */
 .btn-rc-active {
