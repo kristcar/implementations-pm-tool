@@ -21,9 +21,22 @@
        href="{{ url_for('my_projects') }}">My Projects</a>
     <a class="nav-link {% if request.endpoint == 'project_list' %}nav-link-active{% endif %}"
        href="{{ url_for('project_list') }}">All Projects</a>
+    <a class="nav-link {% if request.endpoint == 'reporting' %}nav-link-active{% endif %}"
+       href="{{ url_for('reporting') }}">Reporting</a>
     <a class="nav-link btn btn-sm btn-rc-new ms-2 text-white px-3" href="{{ url_for('project_new') }}">
       <i class="bi bi-plus-lg me-1"></i>New Project
     </a>
+    {% if session.get('current_user') %}
+    <div class="d-flex align-items-center gap-2 ms-3 ps-3" style="border-left:1px solid rgba(255,255,255,0.2);">
+      <span class="ie-avatar" style="background:rgba(255,255,255,0.2); color:#fff; font-size:0.7rem;" title="{{ session.current_user }}">
+        {{ session.current_user.split()[0][0] }}{{ session.current_user.split()[-1][0] if session.current_user.split()|length > 1 else '' }}
+      </span>
+      <span class="text-white small" style="opacity:0.85;">{{ session.current_user.split()[0] }}</span>
+      <a href="{{ url_for('logout') }}" class="text-white small" style="opacity:0.6;" title="Sign out">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+    </div>
+    {% endif %}
   </div>
 </nav>
 

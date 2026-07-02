@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Reporting — Implementations PM{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h5 class="fw-bold mb-0">Reporting</h5>
+    <div class="text-muted small">Portfolio overview</div>
+  </div>
+</div>
+
+<!-- Summary stat cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid #3FA9F5;">
+      <div class="fw-bold" style="font-size:1.75rem; color:#1B1464;">{{ active_on_time + active_late }}</div>
+      <div class="text-muted small">Active Projects</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-lime);">
+      <div class="fw-bold" style="font-size:1.75rem; color:#3a7d13;">{{ active_on_time }}</div>
+      <div class="text-muted small">On Time</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-red);">
+      <div class="fw-bold" style="font-size:1.75rem; color:#c0000a;">{{ active_late }}</div>
+      <div class="text-muted small">Late</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-purple);">
+      <div class="fw-bold" style="font-size:1.75rem; color:var(--rc-purple);">{{ done }}</div>
+      <div class="text-muted small">Launched</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div class="row g-4">
+
+  <!-- Active: Late vs On Track -->
+  <div class="col-md-4">
+    <div class="card h-100 p-4">
+      <h6 class="fw-bold mb-1">Active Projects</h6>
+      <div class="text-muted small mb-3">Late vs. On Track</div>
+      <div style="position:relative; height:220px;">
+        <canvas id="activeStatusChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active by Pathway -->
+  <div class="col-md-4">
+    <div class="card h-100 p-4">
+      <h6 class="fw-bold mb-1">Active Projects</h6>
+      <div class="text-muted small mb-3">By Pathway</div>
+      <div style="position:relative; height:220px;">
+        <canvas id="activePathwayChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Launched by Pathway -->
+  <div class="col-md-4">
+    <div class="card h-100 p-4">
+      <h6 class="fw-bold mb-1">Launched Projects</h6>
+      <div class="text-muted small mb-3">By Pathway</div>
+      <div style="position:relative; height:220px;">
+        <canvas id="donePathwayChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- Second row: bar charts -->
+<div class="row g-4 mt-1">
+
+  <!-- Project count by IE -->
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-1">Project Count by IE</h6>
+      <div class="text-muted small mb-3">Active projects only</div>
+      <div style="position:relative; height:260px;">
+        <canvas id="ieCountChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Launching in next 2 weeks -->
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-1">Projects Expected to Launch — Next 2 Weeks</h6>
+      <div class="text-muted small mb-3">Active projects with go-live within 14 days, by pathway</div>
+      <div style="position:relative; height:260px;">
+        <canvas id="upcomingChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const RC = {
+  cobalt:  '#1B1464',
+  purple:  '#662D91',
+  aero:    '#3FA9F5',
+  lime:    '#7AC943',
+  melon:   '#FF931E',
+  rose:    '#FF7BAC',
+  red:     '#FF1D25',
+  teal:    '#00A99D',
+  activation: '#0129F1',
+  migration:  '#DCEC5A',
+  strategic:  '#EF6376',
+};
+
+const pathwayColors = {
+  'Optimized Activation':             RC.activation,
+  'Optimized Subscription Migration': RC.migration,
+  'Strategic Implementation':         RC.strategic,
+};
+const pathwayBgColors = [RC.activation, RC.migration, RC.strategic];
+
+Chart.defaults.font.family = 'system-ui, sans-serif';
+Chart.defaults.plugins.legend.position = 'bottom';
+Chart.defaults.plugins.legend.labels.boxWidth = 12;
+Chart.defaults.plugins.legend.labels.padding = 16;
+
+// Active: Late vs On Track
+new Chart(document.getElementById('activeStatusChart'), {
+  type: 'pie',
+  data: {
+    labels: ['On Time', 'Late'],
+    datasets: [{
+      data: [{{ active_on_time }}, {{ active_late }}],
+      backgroundColor: [RC.lime, RC.red],
+      borderWidth: 2,
+      borderColor: '#fff',
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false }
+});
+
+// Active by Pathway
+const activePathwayLabels = {{ active_by_pathway.keys() | list | tojson }};
+const activePathwayData   = {{ active_by_pathway.values() | list | tojson }};
+new Chart(document.getElementById('activePathwayChart'), {
+  type: 'pie',
+  data: {
+    labels: activePathwayLabels,
+    datasets: [{
+      data: activePathwayData,
+      backgroundColor: activePathwayLabels.map(l => pathwayColors[l] || RC.aero),
+      borderWidth: 2,
+      borderColor: '#fff',
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false }
+});
+
+// Launched by Pathway
+const donePathwayLabels = {{ done_by_pathway.keys() | list | tojson }};
+const donePathwayData   = {{ done_by_pathway.values() | list | tojson }};
+new Chart(document.getElementById('donePathwayChart'), {
+  type: 'pie',
+  data: {
+    labels: donePathwayLabels,
+    datasets: [{
+      data: donePathwayData,
+      backgroundColor: donePathwayLabels.map(l => pathwayColors[l] || RC.purple),
+      borderWidth: 2,
+      borderColor: '#fff',
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false }
+});
+
+// Project count by IE stacked by pathway
+const ieOwners    = {{ ie_owners_list | tojson }};
+const ieByPW      = {{ ie_by_pathway | tojson }};
+const iePWList    = {{ pathways | tojson }};
+new Chart(document.getElementById('ieCountChart'), {
+  type: 'bar',
+  data: {
+    labels: ieOwners,
+    datasets: iePWList.map((pw, i) => ({
+      label: pw,
+      data: ieOwners.map(ie => ieByPW[pw][ie] || 0),
+      backgroundColor: pathwayBgColors[i],
+      borderRadius: i === iePWList.length - 1 ? 6 : 0,
+    }))
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#eaecf4' } }
+    }
+  }
+});
+
+// Upcoming launches stacked by pathway
+const upcomingIEs     = {{ upcoming_ies | tojson }};
+const pathwayList     = {{ pathways | tojson }};
+const upcomingByPW    = {{ upcoming_by_pathway | tojson }};
+new Chart(document.getElementById('upcomingChart'), {
+  type: 'bar',
+  data: {
+    labels: upcomingIEs,
+    datasets: iePWList.map((pw, i) => ({
+      label: pw,
+      data: upcomingIEs.map(ie => upcomingByPW[pw][ie] || 0),
+      backgroundColor: pathwayBgColors[i],
+      borderRadius: i === pathwayList.length - 1 ? 6 : 0,
+    }))
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#eaecf4' } }
+    }
+  }
+});
+</script>
+{% endblock %}

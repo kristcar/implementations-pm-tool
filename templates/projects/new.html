@@ -40,13 +40,10 @@
         <div class="card-header fw-semibold">Project Details</div>
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Project Name <span class="text-danger">*</span></label>
-              <input type="text" name="name" class="form-control" placeholder="Acme Co — ReCharge Implementation" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Merchant Name</label>
-              <input type="text" name="merchant_name" class="form-control" placeholder="Acme Co">
+            <div class="col-md-12">
+              <label class="form-label">Merchant Name <span class="text-danger">*</span></label>
+              <input type="text" name="merchant_name" id="merchant_name" class="form-control" placeholder="Acme Co" required>
+              <input type="hidden" name="name" id="name_hidden">
             </div>
             <div class="col-md-6">
               <label class="form-label">Implementation Engineer</label>
@@ -94,4 +91,11 @@
     </form>
   </div>
 </div>
+{% block scripts %}
+<script>
+document.querySelector('form').addEventListener('submit', function() {
+  document.getElementById('name_hidden').value = document.getElementById('merchant_name').value;
+});
+</script>
+{% endblock %}
 {% endblock %}

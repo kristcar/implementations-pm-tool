@@ -1,6 +1,5 @@
 """
 Seed demo data using the real project template.
-All projects pull tasks from the project_templates table, same as the UI.
 Run: python3 seed_demo.py
 """
 import sqlite3
@@ -18,7 +17,6 @@ def get_db():
 
 
 def mark_tasks(project_id, statuses):
-    """statuses: list of (title_substring, status)"""
     db = get_db()
     tasks = db.execute("SELECT * FROM tasks WHERE project_id = ?", (project_id,)).fetchall()
     for task in tasks:
@@ -30,6 +28,17 @@ def mark_tasks(project_id, statuses):
                     (status, completed_at, task["id"]),
                 )
                 break
+    db.commit()
+    db.close()
+
+
+def complete_all(project_id):
+    db = get_db()
+    db.execute(
+        "UPDATE tasks SET status='complete', completed_at=? WHERE project_id=?",
+        (datetime.utcnow().isoformat(), project_id)
+    )
+    db.execute("UPDATE milestones SET status='complete', actual_date=target_date WHERE project_id=?", (project_id,))
     db.commit()
     db.close()
 
@@ -48,178 +57,194 @@ def seed():
     db.commit()
     db.close()
 
-    # ── 1. Hydrant — 80% complete, pre go-live ───────────────────────────
-    p1 = models.create_project({
-        "name": "Hydrant",
-        "merchant_name": "Hydrant",
-        "template_type": "standard",
-        "ie_owner": "Kristin Caras",
-        "platform": "Shopify Plus",
-        "contract_start_date": "2026-04-15",
-        "target_go_live_date": "2026-06-14",
-        "notes": "High-priority merchant. Hydration subscription bundles. ESP is Klaviyo.",
-    })
-    mark_tasks(p1, [
-        ("Schedule Call", "complete"),
-        ("Advanced Coding", "complete"),
-        ("Merchant - Download Recharge", "complete"),
-        ("Enable Plus", "complete"),
-        ("Merchant - Review your Settings", "complete"),
-        ("Duplicate Theme", "complete"),
-        ("Configure Bundles", "complete"),
-        ("Additional Growth", "complete"),
-        ("Merchant - Run Test Transaction", "complete"),
-        ("Adjust customer portal", "complete"),
-        ("Configure customer notifications", "complete"),
-        ("Final Call", "complete"),
-        ("Set the subscription widget live", "in_progress"),
-        ("Open Risk", "not_started"),
-        ("Transition merchant", "not_started"),
-        ("Complete Customer Effort", "not_started"),
-        ("Congratulations", "not_started"),
-    ])
-    # Mark milestones complete through Configure Customer Experience
-    db = get_db()
-    db.execute(
-        "UPDATE milestones SET status='complete', actual_date=target_date WHERE project_id=? AND name != 'Test & Go-Live' AND name != 'Handoff'",
-        (p1,)
-    )
-    db.commit()
-    db.close()
+    projects = [
+        # ── Kristin Caras ────────────────────────────────────────────────
+        {
+            "data": {
+                "name": "Hydrant", "merchant_name": "Hydrant",
+                "template_type": "optimized_activation", "ie_owner": "Kristin Caras",
+                "contract_start_date": "2026-04-15", "target_go_live_date": "2026-07-08",
+                "notes": "Hydration subscription bundles. ESP is Klaviyo.",
+            },
+            "pct": 75, "status": "active",
+        },
+        {
+            "data": {
+                "name": "Brightland", "merchant_name": "Brightland",
+                "template_type": "optimized_subscription_migration", "ie_owner": "Kristin Caras",
+                "contract_start_date": "2026-05-01", "target_go_live_date": "2026-06-25",
+                "notes": "Migrating from Bold. Past go-live target.",
+            },
+            "pct": 45, "status": "active",
+        },
+        {
+            "data": {
+                "name": "Caraway Home", "merchant_name": "Caraway Home",
+                "template_type": "optimized_activation", "ie_owner": "Kristin Caras",
+                "contract_start_date": "2026-01-06", "target_go_live_date": "2026-03-06",
+                "actual_go_live_date": "2026-03-04",
+                "notes": "Launched 2 days ahead of schedule.",
+            },
+            "pct": 100, "status": "complete",
+        },
 
-    # ── 2. Graza Olive Oil — mid-implementation ──────────────────────────
-    p2 = models.create_project({
-        "name": "Graza Olive Oil",
-        "merchant_name": "Graza",
-        "template_type": "standard",
-        "ie_owner": "Marcus Webb",
-        "platform": "Shopify Plus",
-        "contract_start_date": "2026-05-01",
-        "target_go_live_date": "2026-06-30",
-        "notes": "Migrating from Bold Subscriptions. Custom portal required. Large subscriber base (~40k active).",
-    })
-    mark_tasks(p2, [
-        ("Schedule Call", "complete"),
-        ("Advanced Coding", "complete"),
-        ("Merchant - Download Recharge", "complete"),
-        ("Enable Plus", "complete"),
-        ("Merchant - Review your Settings", "complete"),
-        ("Duplicate Theme", "complete"),
-        ("Configure Bundles", "in_progress"),
-        ("Additional Growth", "not_started"),
-        ("Merchant - Run Test Transaction", "not_started"),
-        ("Adjust customer portal", "not_started"),
-        ("Configure customer notifications", "not_started"),
-        ("Final Call", "not_started"),
-        ("Set the subscription widget live", "not_started"),
-        ("Open Risk", "not_started"),
-        ("Transition merchant", "not_started"),
-        ("Complete Customer Effort", "not_started"),
-        ("Congratulations", "not_started"),
-    ])
-    db = get_db()
-    db.execute(
-        "UPDATE milestones SET status='complete', actual_date=target_date WHERE project_id=? AND name IN ('Kickoff and Confirm Scope','Recharge/Shopify Configuration')",
-        (p2,)
-    )
-    db.commit()
-    db.close()
+        {
+            "data": {
+                "name": "Jolie", "merchant_name": "Jolie",
+                "template_type": "optimized_subscription_migration", "ie_owner": "Kristin Caras",
+                "contract_start_date": "2026-05-20", "target_go_live_date": "2026-07-25",
+                "notes": "Migrating from Recharge v1. Filtered showerhead subscription.",
+            },
+            "pct": 50, "status": "active",
+        },
 
-    # ── 3. Olipop — just kicked off ──────────────────────────────────────
-    p3 = models.create_project({
-        "name": "Olipop",
-        "merchant_name": "Olipop",
-        "template_type": "standard",
-        "ie_owner": "Priya Nair",
-        "platform": "Shopify Plus",
-        "contract_start_date": "2026-06-16",
-        "target_go_live_date": "2026-08-15",
-        "notes": "New logo win. Subscribe & Save on sparkling tonics. Loyalty integration with Yotpo.",
-    })
-    mark_tasks(p3, [
-        ("Schedule Call", "complete"),
-        ("Advanced Coding", "not_started"),
-        ("Merchant - Download Recharge", "in_progress"),
-    ])
-    db = get_db()
-    db.execute(
-        "UPDATE milestones SET status='complete', actual_date=target_date WHERE project_id=? AND name='Kickoff and Confirm Scope'",
-        (p3,)
-    )
-    db.commit()
-    db.close()
+        {
+            "data": {
+                "name": "Blueland", "merchant_name": "Blueland",
+                "template_type": "optimized_activation", "ie_owner": "Kristin Caras",
+                "contract_start_date": "2026-03-01", "target_go_live_date": "2026-05-01",
+                "notes": "Project cancelled — merchant paused ReCharge rollout indefinitely.",
+            },
+            "pct": 25, "status": "cancelled",
+        },
 
-    # ── 4. Brightland — on hold ───────────────────────────────────────────
-    p4 = models.create_project({
-        "name": "Brightland",
-        "merchant_name": "Brightland",
-        "template_type": "standard",
-        "ie_owner": "Kristin Caras",
-        "platform": "Shopify",
-        "contract_start_date": "2026-05-01",
-        "target_go_live_date": "2026-07-30",
-        "notes": "On hold — merchant migrating to Shopify Plus internally. Resume expected late July 2026.",
-    })
-    mark_tasks(p4, [
-        ("Schedule Call", "complete"),
-        ("Advanced Coding", "complete"),
-        ("Merchant - Download Recharge", "complete"),
-        ("Enable Plus", "complete"),
-        ("Merchant - Review your Settings", "complete"),
-    ])
-    db = get_db()
-    db.execute("UPDATE projects SET status='on_hold' WHERE id=?", (p4,))
-    db.execute(
-        "UPDATE milestones SET status='complete', actual_date=target_date WHERE project_id=? AND name IN ('Kickoff and Confirm Scope','Recharge/Shopify Configuration')",
-        (p4,)
-    )
-    db.commit()
-    db.close()
+        # ── Marcus Webb ──────────────────────────────────────────────────
+        {
+            "data": {
+                "name": "Graza Olive Oil", "merchant_name": "Graza Olive Oil",
+                "template_type": "optimized_activation", "ie_owner": "Marcus Webb",
+                "contract_start_date": "2026-05-01", "target_go_live_date": "2026-06-15",
+                "notes": "Custom portal required. Overdue — go-live target missed.",
+            },
+            "pct": 40, "status": "active", "late": True,
+        },
+        {
+            "data": {
+                "name": "Liquid IV", "merchant_name": "Liquid IV",
+                "template_type": "recharge_strategic_migration", "ie_owner": "Marcus Webb",
+                "contract_start_date": "2026-03-10", "target_go_live_date": "2026-06-20",
+                "notes": "Strategic migration. Complex bundle logic.",
+            },
+            "pct": 60, "status": "active",
+        },
+        {
+            "data": {
+                "name": "Magic Spoon", "merchant_name": "Magic Spoon",
+                "template_type": "optimized_activation", "ie_owner": "Marcus Webb",
+                "contract_start_date": "2025-10-01", "target_go_live_date": "2025-12-15",
+                "actual_go_live_date": "2025-12-18",
+                "notes": "Launched 3 days late.",
+            },
+            "pct": 100, "status": "complete",
+        },
+        {
+            "data": {
+                "name": "Nguyen Coffee", "merchant_name": "Nguyen Coffee",
+                "template_type": "optimized_subscription_migration", "ie_owner": "Marcus Webb",
+                "contract_start_date": "2025-11-01", "target_go_live_date": "2026-01-10",
+                "actual_go_live_date": "2026-01-10",
+                "notes": "Launched on schedule.",
+            },
+            "pct": 100, "status": "complete",
+        },
 
-    # ── 5. Caraway Home — complete ────────────────────────────────────────
-    p5 = models.create_project({
-        "name": "Caraway Home",
-        "merchant_name": "Caraway",
-        "template_type": "standard",
-        "ie_owner": "Marcus Webb",
-        "platform": "Shopify Plus",
-        "contract_start_date": "2026-01-06",
-        "target_go_live_date": "2026-03-06",
-        "notes": "Launched 2 days ahead of schedule. Prepaid annual model. Strong merchant engagement.",
-    })
-    mark_tasks(p5, [
-        ("Schedule Call", "complete"),
-        ("Advanced Coding", "complete"),
-        ("Merchant - Download Recharge", "complete"),
-        ("Enable Plus", "complete"),
-        ("Merchant - Review your Settings", "complete"),
-        ("Duplicate Theme", "complete"),
-        ("Configure Bundles", "complete"),
-        ("Additional Growth", "complete"),
-        ("Merchant - Run Test Transaction", "complete"),
-        ("Adjust customer portal", "complete"),
-        ("Configure customer notifications", "complete"),
-        ("Final Call", "complete"),
-        ("Set the subscription widget live", "complete"),
-        ("Open Risk", "complete"),
-        ("Transition merchant", "complete"),
-        ("Complete Customer Effort", "complete"),
-        ("Congratulations", "complete"),
-    ])
-    db = get_db()
-    db.execute("UPDATE projects SET status='complete', actual_go_live_date='2026-03-04' WHERE id=?", (p5,))
-    db.execute(
-        "UPDATE milestones SET status='complete', actual_date=target_date WHERE project_id=?", (p5,)
-    )
-    db.commit()
-    db.close()
+        # ── Priya Nair ───────────────────────────────────────────────────
+        {
+            "data": {
+                "name": "Olipop", "merchant_name": "Olipop",
+                "template_type": "optimized_activation", "ie_owner": "Priya Nair",
+                "contract_start_date": "2026-06-01", "target_go_live_date": "2026-07-14",
+                "notes": "Subscribe & Save on sparkling tonics. Loyalty integration with Yotpo.",
+            },
+            "pct": 20, "status": "active",
+        },
+        {
+            "data": {
+                "name": "Hex Clad", "merchant_name": "Hex Clad",
+                "template_type": "recharge_strategic_migration", "ie_owner": "Priya Nair",
+                "contract_start_date": "2026-04-01", "target_go_live_date": "2026-07-05",
+                "notes": "High-value cookware brand. Multi-storefront.",
+            },
+            "pct": 55, "status": "active",
+        },
+        {
+            "data": {
+                "name": "Buoy Health", "merchant_name": "Buoy Health",
+                "template_type": "optimized_subscription_migration", "ie_owner": "Priya Nair",
+                "contract_start_date": "2026-05-15", "target_go_live_date": "2026-06-28",
+                "notes": "Small team, fast timeline.",
+            },
+            "pct": 35, "status": "active",
+        },
+        {
+            "data": {
+                "name": "Cometeer", "merchant_name": "Cometeer",
+                "template_type": "optimized_activation", "ie_owner": "Priya Nair",
+                "contract_start_date": "2025-09-01", "target_go_live_date": "2025-11-01",
+                "actual_go_live_date": "2025-10-28",
+                "notes": "Launched 4 days early.",
+            },
+            "pct": 100, "status": "complete",
+        },
+        {
+            "data": {
+                "name": "Fly By Jing", "merchant_name": "Fly By Jing",
+                "template_type": "optimized_subscription_migration", "ie_owner": "Priya Nair",
+                "contract_start_date": "2025-12-01", "target_go_live_date": "2026-02-01",
+                "actual_go_live_date": "2026-02-05",
+                "notes": "Launched 4 days late.",
+            },
+            "pct": 100, "status": "complete",
+        },
+    ]
 
-    print("Demo seeded from real template — 5 projects:")
-    print(f"  {p1}. Hydrant         — 80% done, pre go-live")
-    print(f"  {p2}. Graza           — mid-implementation, bundles in progress")
-    print(f"  {p3}. Olipop          — just kicked off")
-    print(f"  {p4}. Brightland      — on hold")
-    print(f"  {p5}. Caraway Home    — complete (launched early)")
+    import models
+
+    for proj in projects:
+        data = proj["data"]
+        display_type = data["template_type"]
+        # Use "standard" for task instantiation — update display type after
+        data["template_type"] = "standard"
+        pid = models.create_project(data)
+
+        # Restore display template_type
+        db = get_db()
+        db.execute("UPDATE projects SET template_type=? WHERE id=?", (display_type, pid))
+        db.commit()
+        db.close()
+
+        pct = proj["pct"]
+        db = get_db()
+        tasks = db.execute("SELECT id FROM tasks WHERE project_id = ? ORDER BY id", (pid,)).fetchall()
+        db.close()
+        n_complete = int(len(tasks) * pct / 100)
+        db = get_db()
+        for i, task in enumerate(tasks):
+            status = "complete" if i < n_complete else "not_started"
+            completed_at = datetime.utcnow().isoformat() if status == "complete" else None
+            db.execute("UPDATE tasks SET status=?, completed_at=? WHERE id=?", (status, completed_at, task["id"]))
+        db.commit()
+        db.close()
+
+        db = get_db()
+        if proj["status"] == "complete":
+            actual = data.get("actual_go_live_date", data.get("target_go_live_date"))
+            db.execute("UPDATE projects SET status='complete', actual_go_live_date=? WHERE id=?", (actual, pid))
+            db.execute("UPDATE milestones SET status='complete', actual_date=target_date WHERE project_id=?", (pid,))
+        if proj.get("late"):
+            db.execute(
+                "UPDATE tasks SET due_date='2026-06-01' WHERE project_id=? AND status != 'complete'", (pid,)
+            )
+        else:
+            # Clear due dates on incomplete tasks so they don't show as overdue
+            db.execute(
+                "UPDATE tasks SET due_date=NULL WHERE project_id=? AND status != 'complete'", (pid,)
+            )
+        db.execute("UPDATE projects SET status=? WHERE id=?", (proj["status"], pid))
+        db.commit()
+        db.close()
+
+    print(f"Demo seeded: {len(projects)} projects across 3 IEs.")
 
 
 if __name__ == "__main__":

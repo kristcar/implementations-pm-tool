@@ -137,6 +137,7 @@ body { background-color: #f7f8fc; }
 .status-upcoming   { background: #f1f5f9; color: #475569; }
 .status-at_risk    { background: #fff0f0; color: #c0000a; }
 .status-cancelled  { background: #f3f4f6; color: #6b7280; }
+.status-badge-late { font-size: 0.72rem; padding: 3px 10px; border-radius: 20px; font-weight: 700; letter-spacing: 0.02em; background: #fff0f0; color: #c0000a; }
 
 /* ── Owner badges ── */
 .owner-badge { font-size: 0.65rem; padding: 2px 7px; border-radius: 5px; font-weight: 700; letter-spacing: 0.03em; }
@@ -268,8 +269,12 @@ body { background-color: #f7f8fc; }
 }
 .btn-tpl-activation:hover, .btn-check:checked + .btn-tpl-activation {
   background: #0129F1;
-  color: #fff;
+  color: #fff !important;
   border-color: #0129F1;
+}
+.btn-check:checked + .btn-tpl-activation .small,
+.btn-check:checked + .btn-tpl-activation .fw-bold {
+  color: #fff !important;
 }
 .btn-tpl-migration {
   border: 2px solid #DCEC5A;
@@ -278,8 +283,12 @@ body { background-color: #f7f8fc; }
 }
 .btn-tpl-migration:hover, .btn-check:checked + .btn-tpl-migration {
   background: #DCEC5A;
-  color: #3a4200;
+  color: #3a4200 !important;
   border-color: #DCEC5A;
+}
+.btn-check:checked + .btn-tpl-migration .small,
+.btn-check:checked + .btn-tpl-migration .fw-bold {
+  color: #3a4200 !important;
 }
 .btn-tpl-strategic {
   border: 2px solid #EF6376;
@@ -288,8 +297,12 @@ body { background-color: #f7f8fc; }
 }
 .btn-tpl-strategic:hover, .btn-check:checked + .btn-tpl-strategic {
   background: #EF6376;
-  color: #fff;
+  color: #fff !important;
   border-color: #EF6376;
+}
+.btn-check:checked + .btn-tpl-strategic .small,
+.btn-check:checked + .btn-tpl-strategic .fw-bold {
+  color: #fff !important;
 }
 
 /* ── IE filter button group ── */

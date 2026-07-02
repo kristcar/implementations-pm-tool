@@ -63,6 +63,10 @@ def init_db():
             sort_order INTEGER DEFAULT 0
         );
 
+        CREATE TABLE IF NOT EXISTS ie_owners (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE
+        );
         CREATE TABLE IF NOT EXISTS project_templates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             template_type TEXT NOT NULL,

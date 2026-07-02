@@ -1,9 +1,37 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, session
+from functools import wraps
 from database import init_db
 import models
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-change-in-prod"
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("current_user"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        name = request.form.get("ie_name", "").strip()
+        if name:
+            session["current_user"] = name
+            return redirect(url_for("my_projects"))
+        flash("Please select your name.", "danger")
+    ie_owners = models.list_ie_owners()
+    return render_template("login.html", ie_owners=ie_owners)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 
 @app.before_request
@@ -14,11 +42,13 @@ def setup():
 # ── Projects ──────────────────────────────────────────────────────────────────
 
 @app.route("/")
+@login_required
 def index():
     return redirect(url_for("project_list"))
 
 
 @app.route("/projects")
+@login_required
 def project_list():
     status = request.args.get("status", "all")
     from datetime import date
@@ -34,14 +64,19 @@ def project_list():
             elapsed = (today - start).days if start else None
         except ValueError:
             elapsed = None
-        enriched.append({"project": p, "progress": prog, "overdue": overdue, "elapsed": elapsed})
+        try:
+            target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
+            is_late = p["status"] == "active" and target is not None and target < today
+        except ValueError:
+            is_late = False
+        enriched.append({"project": p, "progress": prog, "overdue": overdue, "elapsed": elapsed, "is_late": is_late})
 
     def sort_key(item):
         s = item["project"]["status"]
-        if s == "active" and item["overdue"] > 0:
+        if s == "active" and item["is_late"]:
             return 0  # Late first
         if s == "active":
-            return 1  # Active second
+            return 1  # On Time second
         if s == "complete":
             return 2  # Done third
         return 3      # Cancelled last
@@ -50,15 +85,14 @@ def project_list():
     return render_template("projects/list.html", projects=enriched, active_status=status, ie_owners=ie_owners, today=today)
 
 
-CURRENT_USER = "Kristin Caras"
-
-
 @app.route("/my-projects")
+@login_required
 def my_projects():
     from datetime import date
+    current_user = session["current_user"]
     status = request.args.get("status", "all")
     all_projects = models.list_projects(status)
-    projects = [p for p in all_projects if (p["ie_owner"] or "").strip() == CURRENT_USER.strip()]
+    projects = [p for p in all_projects if (p["ie_owner"] or "").strip() == current_user.strip()]
     enriched = []
     today = date.today()
     for p in projects:
@@ -71,7 +105,7 @@ def my_projects():
             days_until = None
         enriched.append({"project": p, "progress": prog, "overdue": overdue, "days_until": days_until})
     all_enriched = []
-    for p in [p for p in models.list_projects("all") if (p["ie_owner"] or "").strip() == CURRENT_USER.strip()]:
+    for p in [p for p in models.list_projects("all") if (p["ie_owner"] or "").strip() == current_user.strip()]:
         prog = models.project_progress(p["id"])
         overdue = models.overdue_task_count(p["id"])
         try:
@@ -84,16 +118,27 @@ def my_projects():
     total = len(all_enriched)
     complete = sum(1 for i in all_enriched if i["project"]["status"] == "complete")
     active_items = [i for i in all_enriched if i["project"]["status"] == "active"]
-    late = sum(1 for i in active_items if i["overdue"] > 0 or (i["days_until"] is not None and i["days_until"] < 0))
+    late = sum(1 for i in active_items if i["days_until"] is not None and i["days_until"] < 0)
     on_time = len(active_items) - late
     avg_pct = round(sum(i["progress"]["pct"] for i in all_enriched) / total) if total else 0
 
     stats = {"total": total, "on_time": on_time, "late": late, "complete": complete, "avg_pct": avg_pct}
 
-    return render_template("projects/my_projects.html", projects=enriched, active_status=status, current_user=CURRENT_USER, stats=stats)
+    return render_template("projects/my_projects.html", projects=enriched, active_status=status, current_user=current_user, stats=stats)
+
+
+@app.route("/ie-owners/add", methods=["POST"])
+@login_required
+def ie_owner_add():
+    name = request.form.get("name", "").strip()
+    if name:
+        models.add_ie_owner(name)
+        flash(f"IE '{name}' added.", "success")
+    return redirect(request.referrer or url_for("project_list"))
 
 
 @app.route("/projects/new", methods=["GET", "POST"])
+@login_required
 def project_new():
     if request.method == "POST":
         data = request.form.to_dict()
@@ -107,6 +152,7 @@ def project_new():
 
 
 @app.route("/projects/<int:project_id>")
+@login_required
 def project_detail(project_id):
     project = models.get_project(project_id)
     if not project:
@@ -116,6 +162,14 @@ def project_detail(project_id):
     milestones = models.get_milestones(project_id)
     progress = models.project_progress(project_id)
     timeline_message = _timeline_message(project)
+    from datetime import date
+    today = date.today()
+    try:
+        target = date.fromisoformat(project["target_go_live_date"]) if project["target_go_live_date"] else None
+        is_late = project["status"] == "active" and target is not None and target < today
+    except ValueError:
+        is_late = False
+    ie_owners = models.list_ie_owners()
     return render_template(
         "projects/detail.html",
         project=project,
@@ -123,6 +177,8 @@ def project_detail(project_id):
         milestones=milestones,
         progress=progress,
         timeline_message=timeline_message,
+        is_late=is_late,
+        ie_owners=ie_owners,
     )
 
 
@@ -167,14 +223,22 @@ def _timeline_message(project):
 
 
 @app.route("/projects/<int:project_id>/edit", methods=["POST"])
+@login_required
 def project_edit(project_id):
-    data = request.form.to_dict()
+    project = models.get_project(project_id)
+    if not project:
+        flash("Project not found.", "danger")
+        return redirect(url_for("project_list"))
+    # Start from existing values so partial forms (e.g. status-only) don't blank fields
+    data = dict(project)
+    data.update({k: v for k, v in request.form.to_dict().items() if v != ""})
     models.update_project(project_id, data)
     flash("Project updated.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
 @app.route("/projects/<int:project_id>/delete", methods=["POST"])
+@login_required
 def project_delete(project_id):
     models.delete_project(project_id)
     flash("Project deleted.", "success")
@@ -184,6 +248,7 @@ def project_delete(project_id):
 # ── Timeline ──────────────────────────────────────────────────────────────────
 
 @app.route("/projects/<int:project_id>/timeline")
+@login_required
 def project_timeline(project_id):
     project = models.get_project(project_id)
     if not project:
@@ -268,6 +333,13 @@ def task_add(project_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+@app.route("/projects/<int:project_id>/tasks/complete-all", methods=["POST"])
+def tasks_complete_all(project_id):
+    models.complete_all_tasks(project_id)
+    flash("All tasks marked as complete.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/tasks/<int:task_id>/status", methods=["POST"])
 def task_status(task_id):
     task = models.get_task(task_id)
@@ -339,6 +411,107 @@ def project_proposal_export(project_id):
     resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
     resp.headers["Content-Type"] = "text/html"
     return resp
+
+
+# ── Reporting ─────────────────────────────────────────────────────────────────
+
+@app.route("/reporting")
+@login_required
+def reporting():
+    from datetime import date
+    today = date.today()
+    all_projects = models.list_projects("all")
+
+    active_late = 0
+    active_on_time = 0
+    done = 0
+
+    pathway_labels = {
+        "optimized_activation": "Optimized Activation",
+        "optimized_subscription_migration": "Optimized Subscription Migration",
+        "recharge_strategic_migration": "Strategic Implementation",
+        "standard": "Optimized Activation",
+        "enterprise": "Strategic Implementation",
+    }
+
+    active_by_pathway = {}
+    done_by_pathway = {}
+
+    for p in all_projects:
+        if p["status"] == "cancelled":
+            continue
+        label = pathway_labels.get(p["template_type"] or "", p["template_type"] or "Unknown")
+        if p["status"] == "active":
+            try:
+                target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
+                is_late = target is not None and target < today
+            except ValueError:
+                is_late = False
+            if is_late:
+                active_late += 1
+            else:
+                active_on_time += 1
+            active_by_pathway[label] = active_by_pathway.get(label, 0) + 1
+        elif p["status"] == "complete":
+            done += 1
+            done_by_pathway[label] = done_by_pathway.get(label, 0) + 1
+
+    # Project count by IE and pathway (active only)
+    ie_owners_list = sorted(set(
+        p["ie_owner"] for p in all_projects
+        if p["status"] == "active" and p["ie_owner"]
+    ))
+    ie_by_pathway = {pw: {ie: 0 for ie in ie_owners_list} for pw in [
+        "Optimized Activation", "Optimized Subscription Migration", "Strategic Implementation"
+    ]}
+    ie_counts = {ie: 0 for ie in ie_owners_list}
+    for p in all_projects:
+        if p["status"] != "active":
+            continue
+        owner = p["ie_owner"] or "Unassigned"
+        label = pathway_labels.get(p["template_type"] or "", "Unknown")
+        ie_counts[owner] = ie_counts.get(owner, 0) + 1
+        if owner in ie_owners_list and label in ie_by_pathway:
+            ie_by_pathway[label][owner] += 1
+
+    # Projects launching in next 14 days by IE and pathway
+    from datetime import timedelta
+    pathways = ["Optimized Activation", "Optimized Subscription Migration", "Strategic Implementation"]
+    upcoming_ies = sorted(set(
+        p["ie_owner"] or "Unassigned" for p in all_projects
+        if p["status"] == "active" and p["ie_owner"]
+    ))
+    upcoming_by_pathway = {pw: {ie: 0 for ie in upcoming_ies} for pw in pathways}
+    for p in all_projects:
+        if p["status"] != "active":
+            continue
+        try:
+            target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
+        except ValueError:
+            target = None
+        if not target:
+            continue
+        days = (target - today).days
+        if 0 <= days <= 14:
+            owner = p["ie_owner"] or "Unassigned"
+            label = pathway_labels.get(p["template_type"] or "", "Unknown")
+            if owner in upcoming_ies and label in upcoming_by_pathway:
+                upcoming_by_pathway[label][owner] += 1
+
+    return render_template(
+        "reporting/dashboard.html",
+        active_late=active_late,
+        active_on_time=active_on_time,
+        done=done,
+        active_by_pathway=active_by_pathway,
+        done_by_pathway=done_by_pathway,
+        ie_counts=ie_counts,
+        ie_owners_list=ie_owners_list,
+        ie_by_pathway=ie_by_pathway,
+        upcoming_ies=upcoming_ies,
+        upcoming_by_pathway=upcoming_by_pathway,
+        pathways=pathways,
+    )
 
 
 # ── API ───────────────────────────────────────────────────────────────────────

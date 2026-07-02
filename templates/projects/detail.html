@@ -12,13 +12,34 @@
     </nav>
     <h4 class="fw-bold mb-0">{{ project['name'] }}</h4>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <a href="{{ url_for('project_timeline', project_id=project['id']) }}" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-bar-chart-steps me-1"></i>Timeline
     </a>
-    <a href="{{ url_for('project_proposal', project_id=project['id']) }}" class="btn btn-outline-secondary btn-sm" target="_blank">
-      <i class="bi bi-file-earmark-text me-1"></i>Proposal
-    </a>
+<form method="POST" action="{{ url_for('tasks_complete_all', project_id=project['id']) }}" style="display:inline;">
+      <button type="submit" class="btn btn-outline-secondary btn-sm"
+              onclick="return confirm('Mark all tasks as complete?')">
+        <i class="bi bi-check2-all me-1"></i>Mark All Tasks Done
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('project_edit', project_id=project['id']) }}" style="display:inline;">
+      {% if project['status'] == 'complete' %}
+        <input type="hidden" name="status" value="active">
+        <input type="hidden" name="name" value="{{ project['name'] }}">
+        <button type="submit" class="btn btn-sm fw-semibold btn-outline-secondary"
+                onclick="return confirm('Reopen this project?')">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Reopen Project
+        </button>
+      {% else %}
+        <input type="hidden" name="status" value="complete">
+        <input type="hidden" name="name" value="{{ project['name'] }}">
+        <button type="submit" class="btn btn-sm fw-semibold"
+                style="background:var(--rc-lime); color:#fff; border:none;"
+                onclick="return confirm('Mark this project as Done?')">
+          <i class="bi bi-trophy me-1"></i>Mark Project Done
+        </button>
+      {% endif %}
+    </form>
     <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editProjectModal">
       <i class="bi bi-pencil me-1"></i>Edit
     </button>
@@ -30,15 +51,15 @@
   <div class="card-body py-2">
     <div class="row g-3 align-items-center">
       <div class="col-auto">
-        <span class="badge status-badge status-{{ project['status'] }} fs-6">
-          {{ project['status']|replace('_',' ')|title }}
+        <span class="badge fs-6 {% if is_late %}status-badge-late{% elif project['status'] == 'active' %}status-badge status-active{% else %}status-badge status-{{ project['status'] }}{% endif %}">
+          {% if project['status'] == 'active' %}{% if is_late %}Late{% else %}On Time{% endif %}{% else %}{{ project['status']|replace('_',' ')|title }}{% endif %}
         </span>
       </div>
       {% if project['ie_owner'] %}
       <div class="col-auto text-muted small"><i class="bi bi-person me-1"></i>{{ project['ie_owner'] }}</div>
       {% endif %}
       {% if project['contract_start_date'] %}
-      <div class="col-auto text-muted small"><i class="bi bi-calendar me-1"></i>Start: {{ project['contract_start_date'] }}</div>
+      <div class="col-auto text-muted small"><i class="bi bi-calendar me-1"></i>SSD: <strong>{{ project['contract_start_date'] }}</strong></div>
       {% endif %}
       {% if project['target_go_live_date'] %}
       <div class="col-auto text-muted small"><i class="bi bi-calendar-check me-1"></i>Go-live: <strong>{{ project['target_go_live_date'] }}</strong></div>
@@ -61,15 +82,42 @@
 </div>
 {% endif %}
 
-<!-- Milestones strip -->
+<!-- Milestones timeline -->
 {% if milestones %}
-<div class="d-flex gap-2 flex-wrap mb-4">
-  {% for m in milestones %}
-  <div class="milestone-chip status-{{ m['status'] }}">
-    <i class="bi bi-flag-fill me-1 small"></i>{{ m['name'] }}
-    {% if m['target_date'] %}<span class="ms-1 opacity-75">{{ m['target_date'] }}</span>{% endif %}
+<div class="card mb-4 px-4 pt-4 pb-3">
+  <div class="position-relative" style="overflow-x:auto; padding-top:12px;">
+    <!-- Horizontal line -->
+    <div style="position:absolute; top:18px; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--rc-cobalt),var(--rc-purple),var(--rc-aero),var(--rc-lime)); border-radius:2px; opacity:0.3;"></div>
+
+    <div class="d-flex justify-content-between" style="position:relative; min-width:{{ milestones|length * 165 }}px;">
+      {% for m in milestones %}
+      <div class="d-flex flex-column align-items-center" style="flex:1; min-width:150px;">
+        <!-- Dot -->
+        <div style="width:20px; height:20px; border-radius:50%; border:3px solid #fff; z-index:1; flex-shrink:0; margin-bottom:10px;
+          {% if m['status'] == 'complete' %}background:var(--rc-lime); box-shadow:0 0 0 2px var(--rc-lime);
+          {% elif m['status'] == 'at_risk' %}background:var(--rc-red); box-shadow:0 0 0 2px var(--rc-red);
+          {% else %}background:var(--rc-cobalt); box-shadow:0 0 0 2px var(--rc-cobalt);{% endif %}">
+        </div>
+        <!-- Label -->
+        <div class="text-center" style="font-size:0.72rem; font-weight:600; color:#374151; line-height:1.3; max-width:140px; word-break:keep-all; overflow-wrap:normal;">
+          {{ m['name'] }}
+        </div>
+        {% if m['target_date'] %}
+        <div class="text-muted text-center mt-1" style="font-size:0.65rem;">{{ m['target_date'] }}</div>
+        {% endif %}
+        {% if m['status'] == 'complete' %}
+        <div class="mt-1" style="font-size:0.65rem; color:#3a7d13; font-weight:600;">
+          <i class="bi bi-check-circle-fill me-1"></i>Done
+        </div>
+        {% elif m['status'] == 'at_risk' %}
+        <div class="mt-1" style="font-size:0.65rem; color:#c0000a; font-weight:600;">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>At Risk
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
   </div>
-  {% endfor %}
 </div>
 {% endif %}
 
@@ -124,18 +172,38 @@
             {% if task['due_date'] %}
             <span class="small text-muted">{{ task['due_date'] }}</span>
             {% endif %}
-            <button class="btn btn-sm btn-link text-muted p-0"
-                    data-bs-toggle="modal" data-bs-target="#editTaskModal"
-                    data-task-id="{{ task['id'] }}"
-                    data-task-title="{{ task['title'] }}"
-                    data-task-description="{{ task['description'] or '' }}"
-                    data-task-owner="{{ task['owner'] or 'ie' }}"
-                    data-task-due="{{ task['due_date'] or '' }}"
-                    data-task-notes="{{ task['notes'] or '' }}"
-                    data-task-status="{{ task['status'] }}"
-                    title="Edit task">
-              <i class="bi bi-three-dots-vertical"></i>
-            </button>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown" aria-expanded="false" title="Task actions">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:170px;">
+                <li>
+                  <button class="dropdown-item task-toggle-done small"
+                          data-task-id="{{ task['id'] }}"
+                          data-task-status="{{ task['status'] }}">
+                    {% if task['status'] == 'complete' %}
+                    <i class="bi bi-arrow-counterclockwise me-2"></i>Mark as Not Done
+                    {% else %}
+                    <i class="bi bi-check-lg me-2"></i>Mark as Done
+                    {% endif %}
+                  </button>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                  <button class="dropdown-item small"
+                          data-bs-toggle="modal" data-bs-target="#editTaskModal"
+                          data-task-id="{{ task['id'] }}"
+                          data-task-title="{{ task['title'] }}"
+                          data-task-description="{{ task['description'] or '' }}"
+                          data-task-owner="{{ task['owner'] or 'ie' }}"
+                          data-task-due="{{ task['due_date'] or '' }}"
+                          data-task-notes="{{ task['notes'] or '' }}"
+                          data-task-status="{{ task['status'] }}">
+                    <i class="bi bi-pencil me-2"></i>Edit
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
@@ -178,7 +246,12 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">IE Owner</label>
-              <input type="text" name="ie_owner" class="form-control" value="{{ project['ie_owner'] or '' }}">
+              <select name="ie_owner" class="form-select">
+                <option value="">— Unassigned —</option>
+                {% for ie in ie_owners %}
+                <option value="{{ ie }}" {% if project['ie_owner'] == ie %}selected{% endif %}>{{ ie }}</option>
+                {% endfor %}
+              </select>
             </div>
             <div class="col-md-6">
               <label class="form-label">Platform</label>
@@ -347,6 +420,7 @@
 {% endblock %}
 
 {% block scripts %}
+
 <script>
 // Populate add task modal
 document.querySelectorAll('.add-task-btn').forEach(btn => {
@@ -375,25 +449,35 @@ document.getElementById('deleteTaskBtn').addEventListener('click', () => {
   if (confirm('Delete this task?')) document.getElementById('deleteTaskForm').submit();
 });
 
+async function toggleTaskDone(taskId) {
+  const resp = await fetch(`/tasks/${taskId}/status`, { method: 'POST' });
+  const data = await resp.json();
+  const row = document.getElementById(`task-row-${taskId}`);
+  const titleEl = row.querySelector('.task-title');
+  const cb = row.querySelector('.task-checkbox');
+  const menuBtn = row.querySelector('.task-toggle-done');
+  if (data.status === 'complete') {
+    row.classList.add('task-complete');
+    titleEl.classList.add('text-decoration-line-through', 'text-muted');
+    if (cb) cb.checked = true;
+    if (menuBtn) { menuBtn.dataset.taskStatus = 'complete'; menuBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-2"></i>Mark as Not Done'; }
+  } else {
+    row.classList.remove('task-complete');
+    titleEl.classList.remove('text-decoration-line-through', 'text-muted');
+    if (cb) cb.checked = false;
+    if (menuBtn) { menuBtn.dataset.taskStatus = 'not_started'; menuBtn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Mark as Done'; }
+  }
+  document.getElementById('overall-progress-bar').style.width = data.progress.pct + '%';
+}
+
 // Task checkbox AJAX toggle
 document.querySelectorAll('.task-checkbox').forEach(cb => {
-  cb.addEventListener('change', async function() {
-    const taskId = this.dataset.taskId;
-    const resp = await fetch(`/tasks/${taskId}/status`, { method: 'POST' });
-    const data = await resp.json();
-    const row = document.getElementById(`task-row-${taskId}`);
-    const titleEl = row.querySelector('.task-title');
-    if (data.status === 'complete') {
-      row.classList.add('task-complete');
-      titleEl.classList.add('text-decoration-line-through', 'text-muted');
-    } else {
-      row.classList.remove('task-complete');
-      titleEl.classList.remove('text-decoration-line-through', 'text-muted');
-    }
-    // Update overall progress
-    const prog = data.progress;
-    document.getElementById('overall-progress-bar').style.width = prog.pct + '%';
-  });
+  cb.addEventListener('change', function() { toggleTaskDone(this.dataset.taskId); });
+});
+
+// Burger menu toggle done
+document.querySelectorAll('.task-toggle-done').forEach(btn => {
+  btn.addEventListener('click', function() { toggleTaskDone(this.dataset.taskId); });
 });
 </script>
 {% endblock %}

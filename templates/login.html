@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign In — Implementations PM</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <style>
+    body {
+      background: linear-gradient(135deg, #0d1b6e 0%, #1B1464 50%, #2a1a7a 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Floating stars */
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .star {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0;
+      animation: twinkle var(--d) ease-in-out infinite var(--delay);
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: 0.7; transform: scale(1); }
+    }
+
+    /* Rocket */
+    .rocket-wrap {
+      position: relative;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+    .rocket {
+      font-size: 3.5rem;
+      display: inline-block;
+      animation: launch 3s ease-in-out infinite;
+      transform-origin: center center;
+      filter: drop-shadow(0 4px 16px rgba(63,169,245,0.5));
+    }
+    @keyframes launch {
+      0%   { transform: translateY(0px) rotate(-45deg) translateX(0px); }
+      30%  { transform: translateY(-10px) rotate(-45deg) translateX(10px); }
+      60%  { transform: translateY(-4px) rotate(-45deg) translateX(4px); }
+      100% { transform: translateY(0px) rotate(-45deg) translateX(0px); }
+    }
+
+    /* Sparkle trail — scattered around rocket */
+    .trail {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .trail span {
+      position: absolute;
+      display: block;
+      opacity: 0;
+      animation: fade-sparkle var(--sd) ease-out infinite var(--ss);
+    }
+    @keyframes fade-sparkle {
+      0%   { opacity: 0.95; transform: translateY(0) scale(1); }
+      100% { opacity: 0;    transform: translateY(18px) scale(0.15); }
+    }
+
+    /* Launch animation */
+    @keyframes blast-off {
+      0%   { transform: translateY(0px) rotate(-45deg); opacity: 1; }
+      20%  { transform: translateY(-6px) rotate(-45deg) scale(1.1); }
+      100% { transform: translateY(-300px) rotate(-45deg) scale(0.4); opacity: 0; }
+    }
+    .rocket.launching {
+      animation: blast-off 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+    }
+
+    /* Burst sparkles on launch */
+    .burst-sparkle {
+      position: absolute;
+      font-size: 1.2rem;
+      pointer-events: none;
+      animation: burst 0.8s ease-out forwards;
+    }
+    @keyframes burst {
+      0%   { opacity: 1; transform: translate(0,0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.3); }
+    }
+
+    .login-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 360px;
+      background: rgba(255,255,255,0.97);
+      border-radius: 20px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+      padding: 2rem;
+    }
+
+    .login-card h5 {
+      color: #1B1464;
+    }
+
+    .btn-signin {
+      background: linear-gradient(135deg, #1B1464, #3b2db5);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-signin:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(27,20,100,0.4);
+      color: #fff;
+    }
+
+    .wordmark {
+      filter: brightness(0) invert(1);
+      height: 22px;
+      margin-bottom: 1.25rem;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Stars background -->
+<div class="stars" id="stars"></div>
+
+<div class="login-card">
+  <img src="{{ url_for('static', filename='img/recharge-wordmark.png') }}" alt="ReCharge" class="wordmark">
+
+  <div class="rocket-wrap" id="rocketWrap">
+    <div class="trail" id="trail"></div>
+    <span class="rocket" id="rocket">🚀</span>
+  </div>
+
+  <h5 class="fw-bold mb-1 text-center">Ready for launch?</h5>
+  <p class="text-muted small text-center mb-4">Select your name to get started.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} py-2 small">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('login') }}">
+    <div class="mb-3">
+      <label class="form-label fw-semibold small" style="color:#1B1464;">Who are you?</label>
+      <select name="ie_name" class="form-select" required>
+        <option value="" disabled selected>Select your name…</option>
+        {% for ie in ie_owners %}
+        <option value="{{ ie }}">{{ ie }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-signin w-100">
+      Let's go <span style="margin-left:4px;">🚀</span>
+    </button>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Scattered idle trail sparkles on both sides of rocket
+  const trail = document.getElementById('trail');
+  const trailSparkles = [
+    { emoji: '✨', left: '28%', top: '55%', size: '1rem',   delay: '0s',    dur: '1.6s' },
+    { emoji: '⭐', left: '18%', top: '70%', size: '0.7rem',  delay: '0.3s',  dur: '1.3s' },
+    { emoji: '💫', left: '38%', top: '75%', size: '0.85rem', delay: '0.6s',  dur: '1.5s' },
+    { emoji: '✨', left: '60%', top: '58%', size: '0.9rem',  delay: '0.15s', dur: '1.4s' },
+    { emoji: '⭐', left: '70%', top: '72%', size: '0.65rem', delay: '0.45s', dur: '1.7s' },
+    { emoji: '💫', left: '52%', top: '80%', size: '0.75rem', delay: '0.75s', dur: '1.2s' },
+    { emoji: '✨', left: '12%', top: '50%', size: '0.6rem',  delay: '0.9s',  dur: '1.8s' },
+    { emoji: '⭐', left: '78%', top: '62%', size: '0.8rem',  delay: '0.2s',  dur: '1.5s' },
+  ];
+  trailSparkles.forEach(({ emoji, left, top, size, delay, dur }) => {
+    const s = document.createElement('span');
+    s.textContent = emoji;
+    s.style.cssText = `left:${left}; top:${top}; font-size:${size}; --ss:${delay}; --sd:${dur};`;
+    trail.appendChild(s);
+  });
+
+  // Sprinkle random stars
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `
+      left: ${Math.random() * 100}%;
+      top: ${Math.random() * 100}%;
+      --d: ${2 + Math.random() * 3}s;
+      --delay: ${Math.random() * 4}s;
+      width: ${1 + Math.random() * 3}px;
+      height: ${1 + Math.random() * 3}px;
+    `;
+    container.appendChild(s);
+  }
+
+  // Launch animation on submit
+  const form = document.querySelector('form');
+  form.addEventListener('submit', function(e) {
+    const select = form.querySelector('select');
+    if (!select.value) return; // let browser handle validation
+    e.preventDefault();
+
+    const rocket = document.getElementById('rocket');
+    const wrap = document.getElementById('rocketWrap');
+
+    // Burst sparkles in all directions
+    const sparks = ['✨','⭐','💫','✨','⭐','💫','✨','⭐'];
+    sparks.forEach((ch, i) => {
+      const el = document.createElement('span');
+      el.className = 'burst-sparkle';
+      const angle = (i / sparks.length) * 360;
+      const dist = 40 + Math.random() * 30;
+      const tx = Math.cos(angle * Math.PI / 180) * dist + 'px';
+      const ty = Math.sin(angle * Math.PI / 180) * dist + 'px';
+      el.style.cssText = `--tx:${tx}; --ty:${ty}; left:50%; top:40%;`;
+      el.textContent = ch;
+      wrap.appendChild(el);
+    });
+
+    // Blast off
+    rocket.classList.add('launching');
+
+    // Submit after animation completes
+    setTimeout(() => form.submit(), 950);
+  });
+</script>
+</body>
+</html>

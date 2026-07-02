@@ -31,7 +31,23 @@
       "Bash(git commit -m 'Initial commit: Implementations PM Tool *)",
       "Bash(sqlite3 /Users/kristincaras/Desktop/Implementations_PM_Tool/instance/pm_tool.db \"SELECT id, name, template_type FROM projects;\")",
       "Bash(sqlite3 /Users/kristincaras/Desktop/Implementations_PM_Tool/instance/pm_tool.db ' *)",
-      "Bash(git commit -m 'Add pathway badges, IE search, My Projects stats, Cancelled status, and sort order *)"
+      "Bash(git commit -m 'Add pathway badges, IE search, My Projects stats, Cancelled status, and sort order *)",
+      "Bash(sqlite3 instance/pm_tool.db ' *)",
+      "Bash(sqlite3 instance/pm_tool.db \"SELECT date\\('now'\\);\")",
+      "Bash(sqlite3 instance/pm_tool.db \"SELECT COUNT\\(*\\), status FROM tasks WHERE project_id=26 GROUP BY status;\")",
+      "Bash(sqlite3 instance/pm_tool.db \"SELECT id, project_id, title, status FROM tasks WHERE project_id=26 LIMIT 5;\")",
+      "Bash(sqlite3 instance/pm_tool.db \"SELECT COUNT\\(*\\) FROM tasks; SELECT DISTINCT project_id FROM tasks LIMIT 5;\")",
+      "Bash(sqlite3 instance/pm_tool.db \"SELECT COUNT\\(*\\) FROM project_templates; SELECT COUNT\\(*\\) FROM task_groups;\")",
+      "Bash(sqlite3 instance/pm_tool.db \"SELECT DISTINCT template_type FROM project_templates;\")",
+      "Bash(curl -s http://localhost:5050/reporting)",
+      "Bash(sqlite3 instance/pm_tool.db \"SELECT id, name, status, template_type, ie_owner, target_go_live_date FROM projects ORDER BY id;\")",
+      "Bash(pkill -f \"python3 app.py\")",
+      "Bash(sed -i '' 's|^@app.route\\(\"/projects/new\"|@login_required\\\\n@app.route\\(\"/projects/new\"|' /Users/kristincaras/Desktop/Implementations_PM_Tool/app.py)",
+      "Bash(sed -i '' 's|^@app.route\\(\"/projects/<int:project_id>\"\\)$|@login_required\\\\n@app.route\\(\"/projects/<int:project_id>\"\\)|' /Users/kristincaras/Desktop/Implementations_PM_Tool/app.py)",
+      "Bash(sed -i '' 's|^@app.route\\(\"/projects/<int:project_id>/edit\"|@login_required\\\\n@app.route\\(\"/projects/<int:project_id>/edit\"|' /Users/kristincaras/Desktop/Implementations_PM_Tool/app.py)",
+      "Bash(sed -i '' 's|^@app.route\\(\"/projects/<int:project_id>/delete\"|@login_required\\\\n@app.route\\(\"/projects/<int:project_id>/delete\"|' /Users/kristincaras/Desktop/Implementations_PM_Tool/app.py)",
+      "Bash(sed -i '' 's|^@app.route\\(\"/projects/<int:project_id>/timeline\"\\)$|@login_required\\\\n@app.route\\(\"/projects/<int:project_id>/timeline\"\\)|' /Users/kristincaras/Desktop/Implementations_PM_Tool/app.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5050/login)"
     ]
   }
 }

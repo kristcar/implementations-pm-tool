@@ -20,7 +20,7 @@
   <div class="col-6 col-md-3">
     <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-lime);">
       <div class="fw-bold" style="font-size:1.75rem; color:#3a7d13;">{{ stats.on_time }}</div>
-      <div class="text-muted small">On Track</div>
+      <div class="text-muted small">On Time</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -34,6 +34,20 @@
       <div class="fw-bold" style="font-size:1.75rem; color:var(--rc-purple);">{{ stats.avg_pct }}%</div>
       <div class="text-muted small">Avg. Completion</div>
     </div>
+  </div>
+</div>
+
+<!-- Merchant search -->
+<div class="mb-3">
+  <div class="input-group" style="width:280px;">
+    <span class="input-group-text bg-white border-end-0" style="border-color:#d1d5db;">
+      <i class="bi bi-search text-muted" style="font-size:0.75rem;"></i>
+    </span>
+    <input id="project-search" type="text" class="form-control border-start-0 ps-0"
+           placeholder="Merchant" style="border-color:#d1d5db;">
+    <button id="project-clear" class="btn btn-outline-secondary btn-sm px-2 d-none" type="button">
+      <i class="bi bi-x"></i>
+    </button>
   </div>
 </div>
 
@@ -53,11 +67,11 @@
     No projects assigned to you{% if active_status != 'all' %} with this status{% endif %}.
   </div>
 {% else %}
-<div class="row g-3">
+<div class="row g-3" id="project-cards">
   {% for item in projects %}
   {% set p = item.project %}
   {% set prog = item.progress %}
-  <div class="col-md-6 col-xl-4">
+  <div class="col-md-6 col-xl-4 project-card-col" data-merchant="{{ (p['merchant_name'] or p['name'])|lower }}">
     <div class="card h-100 project-card card-{{ p['status'] }}">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -123,4 +137,22 @@
   {% endfor %}
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const projectSearch = document.getElementById('project-search');
+const projectClear  = document.getElementById('project-clear');
+if (projectSearch) {
+  function filterCards() {
+    const q = projectSearch.value.trim().toLowerCase();
+    projectClear.classList.toggle('d-none', q === '');
+    document.querySelectorAll('.project-card-col').forEach(col => {
+      col.style.display = (!q || col.dataset.merchant.includes(q)) ? '' : 'none';
+    });
+  }
+  projectSearch.addEventListener('input', filterCards);
+  projectClear.addEventListener('click', () => { projectSearch.value = ''; filterCards(); projectSearch.focus(); });
+}
+</script>
 {% endblock %}

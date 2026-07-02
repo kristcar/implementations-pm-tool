@@ -11,11 +11,19 @@ def get_project(project_id):
 
 def list_ie_owners():
     db = get_db()
-    rows = db.execute(
-        "SELECT DISTINCT ie_owner FROM projects WHERE ie_owner IS NOT NULL AND ie_owner != '' ORDER BY ie_owner"
-    ).fetchall()
+    from_table = {r["name"] for r in db.execute("SELECT name FROM ie_owners").fetchall()}
+    from_projects = {r["ie_owner"] for r in db.execute(
+        "SELECT DISTINCT ie_owner FROM projects WHERE ie_owner IS NOT NULL AND ie_owner != ''"
+    ).fetchall()}
     db.close()
-    return [r["ie_owner"] for r in rows]
+    return sorted(from_table | from_projects)
+
+
+def add_ie_owner(name):
+    db = get_db()
+    db.execute("INSERT OR IGNORE INTO ie_owners (name) VALUES (?)", (name.strip(),))
+    db.commit()
+    db.close()
 
 
 def list_projects(status=None):
@@ -177,8 +185,32 @@ def get_milestones(project_id):
     rows = db.execute(
         "SELECT * FROM milestones WHERE project_id = ? ORDER BY sort_order, target_date", (project_id,)
     ).fetchall()
+
+    # Auto-derive status from task group completion
+    group_stats = {}
+    groups = db.execute(
+        "SELECT tg.id, tg.name, COUNT(t.id) as total, SUM(CASE WHEN t.status='complete' THEN 1 ELSE 0 END) as done "
+        "FROM task_groups tg LEFT JOIN tasks t ON t.task_group_id = tg.id "
+        "WHERE tg.project_id = ? GROUP BY tg.id", (project_id,)
+    ).fetchall()
+    for g in groups:
+        group_stats[g["name"]] = {"total": g["total"], "done": g["done"]}
+
+    result = []
+    for row in rows:
+        m = dict(row)
+        stats = group_stats.get(m["name"])
+        if stats and stats["total"] > 0:
+            if stats["done"] == stats["total"]:
+                m["status"] = "complete"
+            elif stats["done"] > 0:
+                m["status"] = "upcoming"
+            else:
+                m["status"] = "upcoming"
+        result.append(m)
+
     db.close()
-    return rows
+    return result
 
 
 def add_milestone(project_id, name, target_date):
@@ -276,6 +308,17 @@ def update_task(task_id, data):
 def delete_task(task_id):
     db = get_db()
     db.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    db.commit()
+    db.close()
+
+
+def complete_all_tasks(project_id):
+    from datetime import datetime
+    db = get_db()
+    db.execute(
+        "UPDATE tasks SET status='complete', completed_at=? WHERE project_id=? AND status != 'complete'",
+        (datetime.utcnow().isoformat(), project_id),
+    )
     db.commit()
     db.close()
 

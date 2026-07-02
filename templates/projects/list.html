@@ -14,23 +14,36 @@
     {% endfor %}
   </ul>
 
-  <div class="d-flex align-items-center gap-3">
-    <!-- IE Owner search -->
+  <div class="d-flex align-items-center gap-3 me-3">
+    <!-- Merchant search -->
     <div class="d-flex align-items-center gap-2">
-      <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
-      <div class="input-group" style="width:280px;">
+      <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">Merchant</label>
+      <div class="input-group" style="width:220px;">
         <span class="input-group-text bg-white border-end-0" style="border-color:#d1d5db;">
           <i class="bi bi-search text-muted" style="font-size:0.75rem;"></i>
         </span>
-        <input id="ie-search" type="text" class="form-control border-start-0 ps-0"
-               placeholder="Search by IE name…"
-               value=""
+        <input id="merchant-search" type="text" class="form-control border-start-0 ps-0"
+               placeholder="Merchant"
                style="border-color:#d1d5db;">
-        <button id="ie-clear" class="btn btn-outline-secondary btn-sm px-2 {% if ie_filter == 'all' %}d-none{% endif %}"
+        <button id="merchant-clear" class="btn btn-outline-secondary btn-sm px-2 d-none"
                 type="button" title="Clear filter">
           <i class="bi bi-x"></i>
         </button>
       </div>
+    </div>
+
+    <!-- IE Owner dropdown -->
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
+      <select id="ie-select" class="form-select form-select-sm" style="width:200px; border-color:#d1d5db;">
+        <option value="">All IEs</option>
+        {% for ie in ie_owners %}
+        <option value="{{ ie }}">{{ ie }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addIEModal" title="Add new IE">
+        <i class="bi bi-person-plus"></i>
+      </button>
     </div>
 
     <span class="text-muted small">{{ projects|length }} project{{ 's' if projects|length != 1 }}</span>
@@ -48,8 +61,7 @@
     <table class="table table-hover align-middle mb-0 project-table">
       <thead>
         <tr>
-          <th style="min-width:220px;">Project Name</th>
-          <th>Merchant</th>
+          <th style="min-width:220px;">Merchant</th>
           <th>Pathway</th>
           <th>Status</th>
           <th>IE Owner</th>
@@ -64,13 +76,11 @@
         {% for item in projects %}
         {% set p = item.project %}
         {% set prog = item.progress %}
-        <tr class="project-row" onclick="window.location='{{ url_for('project_detail', project_id=p['id']) }}'" style="cursor:pointer;" data-ie-owner="{{ p['ie_owner'] or '' }}">
+        <tr class="project-row" onclick="window.location='{{ url_for('project_detail', project_id=p['id']) }}'" style="cursor:pointer;" data-ie-owner="{{ p['ie_owner'] or '' }}" data-merchant="{{ p['merchant_name'] or p['name'] }}">
 
           <td>
-            <div class="fw-semibold">{{ p['name'] }}</div>
+            <div class="fw-semibold">{{ p['merchant_name'] or p['name'] }}</div>
           </td>
-
-          <td class="text-muted small">{{ p['merchant_name'] or '—' }}</td>
 
           <td>
             {% if p['template_type'] %}
@@ -92,14 +102,14 @@
               <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#6b7280;">
                 <span class="status-dot" style="background:#9ca3af;"></span>Cancelled
               </span>
-            {% elif item.overdue > 0 %}
+            {% elif item.is_late %}
               <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#c0000a;">
                 <span class="status-dot" style="background:#FF1D25;"></span>Late
                 <i class="bi bi-exclamation-triangle-fill ms-1" style="font-size:0.7rem;"></i>
               </span>
             {% else %}
               <span class="d-flex align-items-center gap-1 small fw-semibold" style="color:#1B1464;">
-                <span class="status-dot" style="background:#3FA9F5;"></span>Active
+                <span class="status-dot" style="background:#3FA9F5;"></span>On Time
               </span>
             {% endif %}
           </td>
@@ -146,24 +156,52 @@
   </div>
 </div>
 {% endif %}
+
+<!-- Add IE Modal -->
+<div class="modal fade" id="addIEModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add IE</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('ie_owner_add') }}">
+        <div class="modal-body">
+          <label class="form-label">Full Name</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g. Jordan Lee" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Add IE</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-const ieSearch = document.getElementById('ie-search');
-const ieClear  = document.getElementById('ie-clear');
-const rows     = document.querySelectorAll('tbody tr.project-row');
+const ieSelect       = document.getElementById('ie-select');
+const merchantSearch = document.getElementById('merchant-search');
+const merchantClear  = document.getElementById('merchant-clear');
+const rows           = document.querySelectorAll('tbody tr.project-row');
 
 function filterRows() {
-  const q = ieSearch.value.trim().toLowerCase();
-  ieClear.classList.toggle('d-none', q === '');
+  const ieQ = ieSelect.value.toLowerCase();
+  const mQ  = merchantSearch.value.trim().toLowerCase();
+  merchantClear.classList.toggle('d-none', mQ === '');
   rows.forEach(row => {
-    const owner = (row.dataset.ieOwner || '').toLowerCase();
-    row.style.display = (!q || owner.includes(q)) ? '' : 'none';
+    const owner    = (row.dataset.ieOwner || '').toLowerCase();
+    const merchant = (row.dataset.merchant || '').toLowerCase();
+    const show = (!ieQ || owner === ieQ) && (!mQ || merchant.includes(mQ));
+    row.style.display = show ? '' : 'none';
   });
 }
 
-ieSearch.addEventListener('input', filterRows);
-ieClear.addEventListener('click', () => { ieSearch.value = ''; filterRows(); ieSearch.focus(); });
+ieSelect.addEventListener('change', filterRows);
+merchantSearch.addEventListener('input', filterRows);
+merchantClear.addEventListener('click', () => { merchantSearch.value = ''; filterRows(); merchantSearch.focus(); });
 </script>
 {% endblock %}
