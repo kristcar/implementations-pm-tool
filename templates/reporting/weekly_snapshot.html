@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Weekly Snapshot — Implementations PM{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h5 class="fw-bold mb-0">Status Board</h5>
+    <div class="text-muted small">Active projects status as of {{ today }}</div>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+  <a href="{{ url_for('weekly_snapshot_csv', ie=ie_filter) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-download me-1"></i>Download CSV
+  </a>
+  <form method="GET" action="{{ url_for('weekly_snapshot') }}" class="d-flex align-items-center gap-2">
+    <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
+    <select name="ie" class="form-select form-select-sm" style="width:180px;" onchange="this.form.submit()">
+      <option value="">All IEs</option>
+      {% for ie in ie_owners %}
+      <option value="{{ ie }}" {% if ie == ie_filter %}selected{% endif %}>{{ ie }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  </div>
+</div>
+
+{% set tpl_labels = {
+  'optimized_activation': '⚡ Optimized Activation',
+  'optimized_subscription_migration': '✨ Subscription Migration',
+  'recharge_strategic_migration': '🚀 Strategic Implementation',
+  'skio': '🐱 Skio'
+} %}
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead style="background:#f8f9fb; border-bottom:2px solid #e5e7eb;">
+        <tr>
+          <th class="ps-4 py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Merchant</th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">IE</th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Template</th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Current Milestone</th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Projected End</th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; width:160px;">% Complete</th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in snapshot %}
+        <tr onclick="window.location='/projects/{{ p.id }}'" style="cursor:pointer;">
+          <td class="ps-4 fw-semibold" style="color:#1B1464;">{{ p.merchant_name }}</td>
+          <td class="text-muted small">{{ p.ie_owner }}</td>
+          <td>
+            <span class="small">{{ tpl_labels.get(p.template_type, p.template_type or '—') }}</span>
+          </td>
+          <td class="small" style="max-width:220px;">{{ p.milestone }}</td>
+          <td class="small text-muted">{{ p.projected_end or '—' }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:8px; border-radius:4px;">
+                <div class="progress-bar" style="width:{{ p.pct }}%; background:{% if p.pct == 100 %}var(--rc-lime){% elif p.is_late %}var(--rc-red){% else %}var(--rc-cobalt){% endif %}; border-radius:4px;"></div>
+              </div>
+              <span class="small fw-semibold" style="min-width:34px; color:#374151;">{{ p.pct }}%</span>
+            </div>
+          </td>
+          <td>
+            {% if p.is_late %}
+              <span class="badge rounded-pill" style="background:#fff0f0; color:#c0000a; font-weight:500;">Late</span>
+            {% else %}
+              <span class="badge rounded-pill" style="background:#f0fdf4; color:#166534; font-weight:500;">On Time</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-5">No active projects.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

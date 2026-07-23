@@ -19,6 +19,8 @@
   <div class="navbar-nav ms-auto d-flex align-items-center gap-1">
     <a class="nav-link {% if request.endpoint == 'my_projects' %}nav-link-active{% endif %}"
        href="{{ url_for('my_projects') }}">My Projects</a>
+    <a class="nav-link {% if request.endpoint == 'weekly_snapshot' %}nav-link-active{% endif %}"
+       href="{{ url_for('weekly_snapshot') }}">Status Board</a>
     <a class="nav-link {% if request.endpoint == 'project_list' %}nav-link-active{% endif %}"
        href="{{ url_for('project_list') }}">All Projects</a>
     <a class="nav-link {% if request.endpoint == 'reporting' %}nav-link-active{% endif %}"

@@ -415,6 +415,106 @@ def project_proposal_export(project_id):
 
 # ── Reporting ─────────────────────────────────────────────────────────────────
 
+def _build_snapshot():
+    from datetime import date
+    today = date.today()
+    db = models.get_db()
+    all_projects = models.list_projects("all")
+    snapshot = []
+    for p in all_projects:
+        if p["status"] in ("cancelled", "complete"):
+            continue
+        pid = p["id"]
+        row = db.execute(
+            "SELECT COUNT(*) as total, SUM(CASE WHEN status='complete' THEN 1 ELSE 0 END) as done FROM tasks WHERE project_id=?",
+            (pid,)
+        ).fetchone()
+        total = row["total"] or 0
+        done = row["done"] or 0
+        pct = round((done / total) * 100) if total > 0 else 0
+        current_milestone = db.execute(
+            """SELECT tg.name FROM task_groups tg
+               JOIN tasks t ON t.task_group_id = tg.id
+               WHERE tg.project_id = ? AND t.status != 'complete'
+               GROUP BY tg.id ORDER BY tg.sort_order LIMIT 1""",
+            (pid,)
+        ).fetchone()
+        milestone = current_milestone["name"] if current_milestone else ("Complete" if total > 0 else "No tasks")
+        last_task = db.execute(
+            "SELECT MAX(due_date) as last_due FROM tasks WHERE project_id=? AND due_date IS NOT NULL",
+            (pid,)
+        ).fetchone()
+        projected_end = last_task["last_due"] if last_task else None
+        try:
+            target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
+            is_late = target is not None and target < today
+        except ValueError:
+            is_late = False
+        snapshot.append({
+            "id": pid,
+            "merchant_name": p["merchant_name"] or p["name"],
+            "ie_owner": p["ie_owner"] or "—",
+            "template_type": p["template_type"],
+            "target_go_live_date": p["target_go_live_date"] or "",
+            "projected_end": projected_end or "",
+            "milestone": milestone,
+            "pct": pct,
+            "is_late": is_late,
+        })
+    db.close()
+    return snapshot, today.isoformat()
+
+
+@app.route("/weekly-snapshot")
+@login_required
+def weekly_snapshot():
+    snapshot, today = _build_snapshot()
+    ie_filter = request.args.get("ie", session.get("current_user", ""))
+    if ie_filter:
+        snapshot = [p for p in snapshot if p["ie_owner"] == ie_filter]
+    snapshot.sort(key=lambda x: (not x["is_late"], x["merchant_name"].lower()))
+    ie_owners = models.list_ie_owners()
+    return render_template("reporting/weekly_snapshot.html", snapshot=snapshot, today=today,
+                           ie_filter=ie_filter, ie_owners=ie_owners)
+
+
+@app.route("/weekly-snapshot/csv")
+@login_required
+def weekly_snapshot_csv():
+    import csv, io
+    snapshot, today = _build_snapshot()
+    ie_filter = request.args.get("ie", "")
+    if ie_filter:
+        snapshot = [p for p in snapshot if p["ie_owner"] == ie_filter]
+    snapshot.sort(key=lambda x: (not x["is_late"], x["merchant_name"].lower()))
+
+    tpl_labels = {
+        "optimized_activation": "Recharge Optimized Activation",
+        "optimized_subscription_migration": "Recharge Optimized Subscription Migration",
+        "recharge_strategic_migration": "Recharge Strategic Implementation",
+        "skio": "Skio",
+    }
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Merchant", "IE Owner", "Template", "Current Milestone", "Projected End Date", "% Complete", "Status"])
+    for p in snapshot:
+        writer.writerow([
+            p["merchant_name"],
+            p["ie_owner"],
+            tpl_labels.get(p["template_type"], p["template_type"] or ""),
+            p["milestone"],
+            p["projected_end"],
+            f"{p['pct']}%",
+            "Late" if p["is_late"] else "On Time",
+        ])
+
+    response = make_response(output.getvalue())
+    response.headers["Content-Type"] = "text/csv"
+    response.headers["Content-Disposition"] = f"attachment; filename=status-board-{today}.csv"
+    return response
+
+
 @app.route("/reporting")
 @login_required
 def reporting():
