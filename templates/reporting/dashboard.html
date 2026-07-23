@@ -37,6 +37,73 @@
   </div>
 </div>
 
+<!-- Merchant Engagement -->
+<div class="card mb-4 p-4">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+    <div>
+      <h6 class="fw-bold mb-0">Project Updates</h6>
+      <div class="text-muted small">Has had an update to the project in the given timeframe</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
+      <select id="engagedIE" class="form-select form-select-sm" style="width:180px;">
+        <option value="">All IEs</option>
+        {% for ie in ie_owners_list %}
+        <option value="{{ ie }}">{{ ie }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- 7-day -->
+    <div class="col-md-6">
+      <div style="border:1px solid #e5e7eb; border-radius:10px; padding:1.25rem;">
+        <div class="fw-semibold mb-1" style="color:#1B1464;">Last 7 Days</div>
+        <div class="text-muted small mb-3" id="range7Label"></div>
+        <div class="d-flex align-items-center gap-4 mb-3">
+          <div class="text-center">
+            <div id="pct7" class="fw-bold" style="font-size:2.5rem; color:var(--rc-cobalt); line-height:1;">—</div>
+            <div class="text-muted small">Engaged</div>
+          </div>
+          <div class="flex-grow-1">
+            <div class="small text-muted mb-1" id="count7">Loading…</div>
+            <div class="progress" style="height:10px; border-radius:6px;">
+              <div id="bar7" class="progress-bar" style="width:0%; border-radius:6px; background:var(--rc-cobalt); transition:width 0.6s ease;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="text-muted small fw-semibold mb-2">Disengaged merchants:</div>
+        <div id="merchants7" class="d-flex flex-wrap gap-2"></div>
+        <div id="empty7" class="text-muted small d-none">All merchants are engaged.</div>
+      </div>
+    </div>
+
+    <!-- 30-day -->
+    <div class="col-md-6">
+      <div style="border:1px solid #e5e7eb; border-radius:10px; padding:1.25rem;">
+        <div class="fw-semibold mb-1" style="color:#1B1464;">Last 30 Days</div>
+        <div class="text-muted small mb-3" id="range30Label"></div>
+        <div class="d-flex align-items-center gap-4 mb-3">
+          <div class="text-center">
+            <div id="pct30" class="fw-bold" style="font-size:2.5rem; color:var(--rc-cobalt); line-height:1;">—</div>
+            <div class="text-muted small">Engaged</div>
+          </div>
+          <div class="flex-grow-1">
+            <div class="small text-muted mb-1" id="count30">Loading…</div>
+            <div class="progress" style="height:10px; border-radius:6px;">
+              <div id="bar30" class="progress-bar" style="width:0%; border-radius:6px; background:var(--rc-cobalt); transition:width 0.6s ease;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="text-muted small fw-semibold mb-2">Disengaged merchants:</div>
+        <div id="merchants30" class="d-flex flex-wrap gap-2"></div>
+        <div id="empty30" class="text-muted small d-none">All merchants are engaged.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Charts row -->
 <div class="row g-4">
 
@@ -103,6 +170,66 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+function fmtDate(d) { return d.toISOString().slice(0, 10); }
+
+function renderPanel(data, suffix) {
+  document.getElementById('pct'   + suffix).textContent = data.pct + '%';
+  document.getElementById('bar'   + suffix).style.width = data.pct + '%';
+  document.getElementById('count' + suffix).textContent =
+    `${data.engaged} of ${data.total} active projects had activity`;
+
+  const merchantEl = document.getElementById('merchants' + suffix);
+  const emptyEl    = document.getElementById('empty'     + suffix);
+  merchantEl.innerHTML = '';
+
+  const disengaged = data.disengaged || [];
+  if (disengaged.length) {
+    emptyEl.classList.add('d-none');
+    disengaged.sort((a, b) => a.name.localeCompare(b.name)).forEach(({ name, ie, updated }) => {
+      const badge = document.createElement('span');
+      badge.className = 'badge rounded-pill';
+      badge.style.cssText = 'background:#fff0f0; color:#c0000a; font-weight:500; font-size:0.8rem; padding:5px 12px; cursor:default;';
+      badge.textContent = name;
+      const tipParts = [];
+      if (ie) tipParts.push(`IE: ${ie}`);
+      if (updated) tipParts.push(`Last Updated: ${updated}`);
+      if (tipParts.length) {
+        badge.setAttribute('data-bs-toggle', 'tooltip');
+        badge.setAttribute('data-bs-placement', 'top');
+        badge.setAttribute('data-bs-title', tipParts.join(', '));
+      }
+      merchantEl.appendChild(badge);
+    });
+    merchantEl.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+  } else {
+    emptyEl.classList.remove('d-none');
+  }
+}
+
+async function loadEngagement() {
+  const ie = document.getElementById('engagedIE').value;
+  const ieParam = ie ? `&ie=${encodeURIComponent(ie)}` : '';
+  const today = new Date();
+  const start7  = new Date(today); start7.setDate(today.getDate() - 7);
+  const start30 = new Date(today); start30.setDate(today.getDate() - 30);
+
+  document.getElementById('range7Label').textContent  = `${fmtDate(start7)} to ${fmtDate(today)}`;
+  document.getElementById('range30Label').textContent = `${fmtDate(start30)} to ${fmtDate(today)}`;
+
+  const [r7, r30] = await Promise.all([
+    fetch(`/api/reporting/engaged?start=${fmtDate(start7)}&end=${fmtDate(today)}${ieParam}`).then(r => r.json()),
+    fetch(`/api/reporting/engaged?start=${fmtDate(start30)}&end=${fmtDate(today)}${ieParam}`).then(r => r.json()),
+  ]);
+
+  renderPanel(r7,  '7');
+  renderPanel(r30, '30');
+}
+
+document.getElementById('engagedIE').addEventListener('change', loadEngagement);
+loadEngagement();
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 const RC = {
@@ -120,11 +247,12 @@ const RC = {
 };
 
 const pathwayColors = {
-  'Optimized Activation':             RC.activation,
-  'Optimized Subscription Migration': RC.migration,
-  'Strategic Implementation':         RC.strategic,
+  'Recharge Optimized Activation':             RC.activation,
+  'Recharge Optimized Subscription Migration': RC.migration,
+  'Recharge Strategic Implementation':         RC.strategic,
+  'Skio':                                      '#7c3aed',
 };
-const pathwayBgColors = [RC.activation, RC.migration, RC.strategic];
+const pathwayBgColors = [RC.activation, RC.migration, RC.strategic, '#7c3aed'];
 
 Chart.defaults.font.family = 'system-ui, sans-serif';
 Chart.defaults.plugins.legend.position = 'bottom';

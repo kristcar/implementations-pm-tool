@@ -427,11 +427,12 @@ def reporting():
     done = 0
 
     pathway_labels = {
-        "optimized_activation": "Optimized Activation",
-        "optimized_subscription_migration": "Optimized Subscription Migration",
-        "recharge_strategic_migration": "Strategic Implementation",
-        "standard": "Optimized Activation",
-        "enterprise": "Strategic Implementation",
+        "optimized_activation": "Recharge Optimized Activation",
+        "optimized_subscription_migration": "Recharge Optimized Subscription Migration",
+        "recharge_strategic_migration": "Recharge Strategic Implementation",
+        "skio": "Skio",
+        "standard": "Recharge Optimized Activation",
+        "enterprise": "Recharge Strategic Implementation",
     }
 
     active_by_pathway = {}
@@ -462,7 +463,7 @@ def reporting():
         if p["status"] == "active" and p["ie_owner"]
     ))
     ie_by_pathway = {pw: {ie: 0 for ie in ie_owners_list} for pw in [
-        "Optimized Activation", "Optimized Subscription Migration", "Strategic Implementation"
+        "Recharge Optimized Activation", "Recharge Optimized Subscription Migration", "Recharge Strategic Implementation", "Skio"
     ]}
     ie_counts = {ie: 0 for ie in ie_owners_list}
     for p in all_projects:
@@ -476,7 +477,7 @@ def reporting():
 
     # Projects launching in next 14 days by IE and pathway
     from datetime import timedelta
-    pathways = ["Optimized Activation", "Optimized Subscription Migration", "Strategic Implementation"]
+    pathways = ["Recharge Optimized Activation", "Recharge Optimized Subscription Migration", "Recharge Strategic Implementation", "Skio"]
     upcoming_ies = sorted(set(
         p["ie_owner"] or "Unassigned" for p in all_projects
         if p["status"] == "active" and p["ie_owner"]
@@ -512,6 +513,77 @@ def reporting():
         upcoming_by_pathway=upcoming_by_pathway,
         pathways=pathways,
     )
+
+
+# ── Reporting API ─────────────────────────────────────────────────────────
+
+@app.route("/api/reporting/engaged")
+@login_required
+def api_engaged():
+    from datetime import date
+    start_str = request.args.get("start", "")
+    end_str   = request.args.get("end", "")
+    if not start_str or not end_str:
+        return jsonify({"error": "start and end required"}), 400
+
+    ie_filter = request.args.get("ie", "").strip()
+
+    from database import get_db
+    db = get_db()
+
+    if ie_filter:
+        rows = db.execute("""
+            SELECT DISTINCT p.id, p.merchant_name, p.name
+            FROM projects p
+            LEFT JOIN tasks t ON t.project_id = p.id
+            WHERE p.status = 'active' AND p.ie_owner = ?
+              AND (
+                (DATE(p.updated_at) BETWEEN ? AND ?)
+                OR (t.completed_at IS NOT NULL AND DATE(t.completed_at) BETWEEN ? AND ?)
+              )
+        """, (ie_filter, start_str, end_str, start_str, end_str)).fetchall()
+        total_active = db.execute(
+            "SELECT COUNT(*) as cnt FROM projects WHERE status = 'active' AND ie_owner = ?",
+            (ie_filter,)
+        ).fetchone()["cnt"]
+    else:
+        rows = db.execute("""
+            SELECT DISTINCT p.id, p.merchant_name, p.name
+            FROM projects p
+            LEFT JOIN tasks t ON t.project_id = p.id
+            WHERE p.status = 'active'
+              AND (
+                (DATE(p.updated_at) BETWEEN ? AND ?)
+                OR (t.completed_at IS NOT NULL AND DATE(t.completed_at) BETWEEN ? AND ?)
+              )
+        """, (start_str, end_str, start_str, end_str)).fetchall()
+        total_active = db.execute(
+            "SELECT COUNT(*) as cnt FROM projects WHERE status = 'active'"
+        ).fetchone()["cnt"]
+
+    engaged_ids = {r["id"] for r in rows}
+
+    # Disengaged = active projects NOT in the engaged set
+    all_active = db.execute(
+        "SELECT id, merchant_name, name, ie_owner, updated_at FROM projects WHERE status = 'active'" +
+        (" AND ie_owner = ?" if ie_filter else ""),
+        (ie_filter,) if ie_filter else ()
+    ).fetchall()
+
+    db.close()
+
+    disengaged = [
+        {
+            "name": r["merchant_name"] or r["name"],
+            "ie": r["ie_owner"] or "",
+            "updated": r["updated_at"][:10] if r["updated_at"] else "—",
+        }
+        for r in all_active if r["id"] not in engaged_ids
+    ]
+
+    engaged = len(engaged_ids)
+    pct = round(engaged / total_active * 100) if total_active else 0
+    return jsonify({"engaged": engaged, "total": total_active, "pct": pct, "disengaged": disengaged})
 
 
 # ── API ───────────────────────────────────────────────────────────────────────

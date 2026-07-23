@@ -55,6 +55,17 @@
           {% if project['status'] == 'active' %}{% if is_late %}Late{% else %}On Time{% endif %}{% else %}{{ project['status']|replace('_',' ')|title }}{% endif %}
         </span>
       </div>
+      {% if project['template_type'] %}
+      {% set tpl_labels = {
+        'optimized_activation': '⚡ Recharge Optimized Activation',
+        'optimized_subscription_migration': '✨ Recharge Optimized Subscription Migration',
+        'recharge_strategic_migration': '🚀 Recharge Strategic Implementation',
+        'skio': '🐱 Skio'
+      } %}
+      <div class="col-auto">
+        <span class="tpl-badge tpl-{{ project['template_type'] }}">{{ tpl_labels.get(project['template_type'], project['template_type']) }}</span>
+      </div>
+      {% endif %}
       {% if project['ie_owner'] %}
       <div class="col-auto text-muted small"><i class="bi bi-person me-1"></i>{{ project['ie_owner'] }}</div>
       {% endif %}

@@ -258,6 +258,7 @@ body { background-color: #f7f8fc; }
 .tpl-optimized_activation             { background: #d6dbfd; color: #0129F1; }
 .tpl-optimized_subscription_migration { background: #f4f9c2; color: #6b7a00; }
 .tpl-recharge_strategic_migration     { background: #fde0e4; color: #c0293c; }
+.tpl-skio                             { background: #ede9fe; color: #5b21b6; }
 .tpl-standard                         { background: #d6dbfd; color: #0129F1; }
 .tpl-enterprise                       { background: #fde0e4; color: #c0293c; }
 
@@ -302,6 +303,20 @@ body { background-color: #f7f8fc; }
 }
 .btn-check:checked + .btn-tpl-strategic .small,
 .btn-check:checked + .btn-tpl-strategic .fw-bold {
+  color: #fff !important;
+}
+.btn-tpl-skio {
+  border: 2px solid #7c3aed;
+  color: #5b21b6;
+  background: #ede9fe;
+}
+.btn-tpl-skio:hover, .btn-check:checked + .btn-tpl-skio {
+  background: #7c3aed;
+  color: #fff !important;
+  border-color: #7c3aed;
+}
+.btn-check:checked + .btn-tpl-skio .small,
+.btn-check:checked + .btn-tpl-skio .fw-bold {
   color: #fff !important;
 }
 

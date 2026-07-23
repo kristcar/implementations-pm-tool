@@ -85,9 +85,10 @@
           <td>
             {% if p['template_type'] %}
             {% set tpl_labels = {
-              'optimized_activation': 'Optimized Activation',
-              'optimized_subscription_migration': 'Optimized Subscription Migration',
-              'recharge_strategic_migration': 'Strategic Implementation'
+              'optimized_activation': 'Recharge Optimized Activation',
+              'optimized_subscription_migration': 'Recharge Optimized Subscription Migration',
+              'recharge_strategic_migration': 'Recharge Strategic Implementation',
+              'skio': 'Skio'
             } %}
             <span class="tpl-badge tpl-{{ p['template_type'] }}">{{ tpl_labels.get(p['template_type'], p['template_type']) }}</span>
             {% else %}—{% endif %}
