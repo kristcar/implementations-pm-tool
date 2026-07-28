@@ -190,7 +190,55 @@ def _seed_templates(conn):
         ("Handoff", "Merchant - Congratulations!", "", "merchant", 0, 30),
     ]
 
-    skio_tasks = []  # No template tasks — Skio projects start empty
+    skio_tasks = [
+        # Group 1: Kickoff
+        ("Kickoff", "Migration checklist sent to merchant", "", "ie", 0, 10),
+        ("Kickoff", "Migration checklist completed by Merchant", "", "merchant", 0, 20),
+        ("Kickoff", "Migration Onboarding Form completed by Merchant", "", "merchant", 0, 30),
+        ("Kickoff", "Send Launch Intro", "", "ie", 0, 40),
+        ("Kickoff", "Skio App installed", "", "ie", 0, 50),
+        ("Kickoff", "Set Customers Skio Instance to isPaying = true AND add Stripe ID", "", "ie", 0, 60),
+        ("Kickoff", "Check Take Rate", "", "ie", 0, 70),
+        ("Kickoff", "Cancel Merchant Trials and Shopify Billing", "", "ie", 0, 80),
+        ("Kickoff", "Collaborator access accepted by Merchant", "", "merchant", 0, 90),
+
+        # Group 2: Theme & Integration
+        ("Theme & Integration", "Send Intro Email", "", "ie", 0, 10),
+        ("Theme & Integration", "Review Onboarding Form", "", "ie", 0, 20),
+        ("Theme & Integration", "Check Problem Apps", "", "ie", 0, 30),
+        ("Theme & Integration", "Review Current Subscription Setup", "", "ie", 0, 40),
+        ("Theme & Integration", "Check theme codebase for reference to \"selling_plan\" to ensure creating in Skio won't affect the frontend", "", "ie", 0, 50),
+        ("Theme & Integration", "Create Filter theme (if needed)", "", "ie", 0, 60),
+        ("Theme & Integration", "Send Filter theme to merchant for approval", "", "ie", 0, 70),
+        ("Theme & Integration", "Publish Filter theme", "", "ie", 0, 80),
+        ("Theme & Integration", "Check Problem apps before generating selling plans", "", "ie", 0, 90),
+        ("Theme & Integration", "Create Selling Plans in Skio Dashboard", "", "ie", 0, 100),
+        ("Theme & Integration", "Skio Plan Picker has been integrated on Product Pages", "", "ie", 0, 110),
+        ("Theme & Integration", "Make sure that Variant switching works with subscriptions on the PDP", "", "ie", 0, 120),
+        ("Theme & Integration", "Integrate Subscription Functionality Into Cart (if applicable)", "", "ie", 0, 130),
+        ("Theme & Integration", "Setup Skio Login as indicated in Onboarding Form", "", "ie", 0, 140),
+        ("Theme & Integration", "Replicate other subscription functionality on site", "", "ie", 0, 150),
+        ("Theme & Integration", "Ensure Shipping rates / Journeys / Volume Discounts / Surprise & Delight have been setup", "", "ie", 0, 160),
+        ("Theme & Integration", "Review current workflows / automations that \"update\" a subscription", "", "ie", 0, 170),
+        ("Theme & Integration", "Shipping Rules (Match Parity)", "", "ie", 0, 180),
+        ("Theme & Integration", "Theme preview sent to the Merchant", "", "ie", 0, 190),
+        ("Theme & Integration", "Skio Theme Published", "", "ie", 0, 200),
+        ("Theme & Integration", "Create Migration Handoff comment", "", "ie", 0, 210),
+
+        # Group 3: Migration
+        ("Migration", "Check for complicated data migration scenarios", "", "ie", 0, 10),
+        ("Migration", "Send Migration Intro Email", "", "ie", 0, 20),
+        ("Migration", "Request Customer to Input API Keys / Connect Payment Provider", "", "merchant", 0, 30),
+        ("Migration", "Generate and Send Migration Preview to Merchant", "", "ie", 0, 40),
+        ("Migration", "Ensure previous platform is done billing for the day", "", "ie", 0, 50),
+        ("Migration", "Perform Data Migration and Verify Data", "", "ie", 0, 60),
+        ("Migration", "Add Manage Subscription Link or Replace Login", "", "ie", 0, 70),
+        ("Migration", "Redirect Previous Customer Portal", "", "ie", 0, 80),
+        ("Migration", "Cancel or Delete Previous Subscription App", "", "ie", 0, 90),
+        ("Migration", "Delete Previous App selling plans", "", "ie", 0, 100),
+        ("Migration", "Set billMigratedSubs to true in the /skioadmin page", "", "ie", 0, 110),
+        ("Migration", "Migration Complete", "", "ie", 0, 120),
+    ]
 
     template_map = {
         "optimized_activation": optimized_activation_tasks,
