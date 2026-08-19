@@ -128,13 +128,13 @@ def my_projects():
 
 
 @app.route("/ie-owners/add", methods=["POST"])
-@login_required
 def ie_owner_add():
     name = request.form.get("name", "").strip()
     if name:
         models.add_ie_owner(name)
         flash(f"IE '{name}' added.", "success")
-    return redirect(request.referrer or url_for("project_list"))
+    redirect_to = request.form.get("redirect_to")
+    return redirect(redirect_to or request.referrer or url_for("project_list"))
 
 
 @app.route("/projects/new", methods=["GET", "POST"])
