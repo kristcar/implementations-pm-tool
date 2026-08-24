@@ -56,9 +56,9 @@
               <label class="form-label">Implementation Engineer</label>
               <select name="ie_owner" class="form-select">
                 <option value="">— Select IE —</option>
-                <option value="Kristin Caras">Kristin Caras</option>
-                <option value="Marcus Webb">Marcus Webb</option>
-                <option value="Priya Nair">Priya Nair</option>
+                {% for ie in ie_owners %}
+                <option value="{{ ie }}">{{ ie }}</option>
+                {% endfor %}
               </select>
             </div>
             <div class="col-md-6">
