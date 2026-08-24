@@ -140,15 +140,16 @@ def ie_owner_add():
 @app.route("/projects/new", methods=["GET", "POST"])
 @login_required
 def project_new():
+    ie_owners = models.list_ie_owners()
     if request.method == "POST":
         data = request.form.to_dict()
         if not data.get("name"):
             flash("Project name is required.", "danger")
-            return render_template("projects/new.html")
+            return render_template("projects/new.html", ie_owners=ie_owners)
         project_id = models.create_project(data)
         flash("Project created successfully.", "success")
         return redirect(url_for("project_detail", project_id=project_id))
-    return render_template("projects/new.html")
+    return render_template("projects/new.html", ie_owners=ie_owners)
 
 
 @app.route("/projects/<int:project_id>")
