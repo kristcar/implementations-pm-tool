@@ -671,7 +671,7 @@ def reporting():
         if p["status"] == "active" and p["ie_owner"]
     ))
     ie_by_pathway = {pw: {ie: 0 for ie in ie_owners_list} for pw in [
-        "Recharge Optimized Activation", "Recharge Optimized Subscription Migration", "Recharge Strategic Implementation", "Skio"
+        "Recharge Optimized Activation", "Recharge Optimized Subscription Migration", "Recharge Strategic Implementation", "Skio", "Store Optimization"
     ]}
     ie_counts = {ie: 0 for ie in ie_owners_list}
     for p in all_projects:
@@ -685,7 +685,7 @@ def reporting():
 
     # Projects launching in next 14 days by IE and pathway
     from datetime import timedelta
-    pathways = ["Recharge Optimized Activation", "Recharge Optimized Subscription Migration", "Recharge Strategic Implementation", "Skio"]
+    pathways = ["Recharge Optimized Activation", "Recharge Optimized Subscription Migration", "Recharge Strategic Implementation", "Skio", "Store Optimization"]
     upcoming_ies = sorted(set(
         p["ie_owner"] or "Unassigned" for p in all_projects
         if p["status"] == "active" and p["ie_owner"]
