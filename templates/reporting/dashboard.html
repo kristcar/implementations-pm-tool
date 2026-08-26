@@ -272,7 +272,21 @@ new Chart(document.getElementById('activeStatusChart'), {
       borderColor: '#fff',
     }]
   },
-  options: { responsive: true, maintainAspectRatio: false }
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(ctx) {
+            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+            const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}%)`;
+          }
+        }
+      }
+    }
+  }
 });
 
 // Active by Pathway
@@ -289,7 +303,21 @@ new Chart(document.getElementById('activePathwayChart'), {
       borderColor: '#fff',
     }]
   },
-  options: { responsive: true, maintainAspectRatio: false }
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(ctx) {
+            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+            const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}%)`;
+          }
+        }
+      }
+    }
+  }
 });
 
 // Launched by Pathway
@@ -306,7 +334,21 @@ new Chart(document.getElementById('donePathwayChart'), {
       borderColor: '#fff',
     }]
   },
-  options: { responsive: true, maintainAspectRatio: false }
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(ctx) {
+            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+            const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}%)`;
+          }
+        }
+      }
+    }
+  }
 });
 
 // Project count by IE stacked by pathway
