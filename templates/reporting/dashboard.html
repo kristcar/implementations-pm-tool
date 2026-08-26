@@ -133,7 +133,8 @@
   <div class="col-md-4">
     <div class="card h-100 p-4">
       <h6 class="fw-bold mb-1">Launched Projects</h6>
-      <div class="text-muted small mb-3">By Pathway</div>
+      <div class="text-muted small">By Pathway</div>
+      <div class="text-muted small mb-3" style="font-size:0.7rem; opacity:0.7;">All Time</div>
       <div style="position:relative; height:220px;">
         <canvas id="donePathwayChart"></canvas>
       </div>
@@ -370,7 +371,16 @@ new Chart(document.getElementById('ieCountChart'), {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } }
+      legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } },
+      tooltip: {
+        callbacks: {
+          label: function(ctx) {
+            const ieTotal = ctx.chart.data.datasets.reduce((sum, ds) => sum + (ds.data[ctx.dataIndex] || 0), 0);
+            const pct = ieTotal > 0 ? Math.round(ctx.parsed.y / ieTotal * 100) : 0;
+            return ` ${ctx.dataset.label}: ${ctx.parsed.y} project${ctx.parsed.y !== 1 ? 's' : ''} (${pct}% of ${ieTotal})`;
+          }
+        }
+      }
     },
     scales: {
       x: { stacked: true, grid: { display: false } },
