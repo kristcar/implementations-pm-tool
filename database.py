@@ -246,28 +246,62 @@ def _seed_templates(conn):
         ("Kickoff and Confirm Scope", "🗓 Schedule call and Review / Confirm Project details", "", "ie", 2, 10),
         ("Kickoff and Confirm Scope", "Approve Scoping & Project Plan", "", "merchant", 1, 20),
 
-        # Group 2: Retain Setup
-        ("Retain Setup", "Configure Failed Payment Recovery", "", "merchant", 1, 10),
-        ("Retain Setup", "Enable Frictionless Payment Updates", "", "merchant", 0, 20),
-        ("Retain Setup", "Configure the \"Incentivize Friends\" Flow", "", "merchant", 1, 30),
-        ("Retain Setup", "Configure the \"Reward Advocates\" Flow", "", "merchant", 1, 40),
-        ("Retain Setup", "(Optional): Refer Friends After Checkout", "", "merchant", 0, 50),
-        ("Retain Setup", "(Optional): Send Reminder to Refer Friends", "", "merchant", 0, 60),
-        ("Retain Setup", "Configure Rewards", "", "merchant", 4, 70),
-        ("Retain Setup", "Cash-back credits talking points", "", "ie", 0, 80),
-        ("Retain Setup", "Additional Reward strategies", "", "ie", 0, 90),
-        ("Retain Setup", "Build Rewards: Cash-back Credits Experience", "", "merchant", 1, 100),
-        ("Retain Setup", "Review Credit settings", "", "merchant", 1, 110),
-        ("Retain Setup", "Review Credit translations", "", "merchant", 1, 120),
-        ("Retain Setup", "Activate Rewards flow", "", "merchant", 1, 130),
-        ("Retain Setup", "Configure Cancellation Prevention", "", "merchant", 2, 140),
-        ("Retain Setup", "Complete Cancellation Prevention setup", "", "merchant", 1, 150),
+        # Group 2: Configure Failed Payment Recovery
+        ("Configure Failed Payment Recovery", "Configure Failed Payment Recovery", "", "merchant", 1, 10),
+        ("Configure Failed Payment Recovery", "Enable Frictionless Payment Updates", "", "merchant", 0, 20),
 
-        # Group 3: Handoff
-        ("Handoff", "Open Risk if Subscription Scorecard is <50%", "", "ie", 0, 20),
-        ("Handoff", "Transition merchant to the next phase of support", "", "ie", 1, 30),
-        ("Handoff", "Complete Customer Effort Score", "", "merchant", 1, 40),
-        ("Handoff", "Congratulations! You've Completed Recharge Implementation", "", "merchant", 0, 50),
+        # Group 3: Configure Referrals
+        ("Configure Referrals", "Configure the \"Incentivize Friends\" Flow", "", "merchant", 1, 10),
+        ("Configure Referrals", "Configure the \"Reward Advocates\" Flow", "", "merchant", 1, 20),
+        ("Configure Referrals", "(Optional): Refer Friends After Checkout", "", "merchant", 0, 30),
+        ("Configure Referrals", "(Optional): Send Reminder to Refer Friends", "", "merchant", 0, 40),
+
+        # Group 4: Configure Rewards
+        ("Configure Rewards", "Cash-back credits talking points", "", "ie", 0, 10),
+        ("Configure Rewards", "Additional Reward strategies", "", "ie", 0, 20),
+        ("Configure Rewards", "Build Rewards: Cash-back Credits Experience", "", "merchant", 1, 30),
+        ("Configure Rewards", "Review Credit settings", "", "merchant", 1, 40),
+        ("Configure Rewards", "Review Credit translations", "", "merchant", 1, 50),
+        ("Configure Rewards", "Activate Rewards flow", "", "merchant", 1, 60),
+
+        # Group 5: Configure Cancellation Prevention
+        ("Configure Cancellation Prevention", "Configure Cancellation Prevention", "", "merchant", 2, 10),
+
+        # Group 6: Bundles
+        ("Bundles", "Review Bundle Use Cases and Determine Your Bundle Type", "", "ie", 0, 10),
+        ("Bundles", "Configure Preset and/or Customizable Bundles", "", "ie", 0, 20),
+        ("Bundles", "Configure Dynamic Bundles", "", "ie", 0, 30),
+        ("Bundles", "Review Inventory Management for Bundle Collections", "", "ie", 0, 40),
+        ("Bundles", "Configure an Out-Of-Stock Klaviyo Campaign for Bundle Contents", "", "ie", 0, 50),
+
+        # Group 7: Concierge SMS
+        ("Concierge SMS", "Configure Concierge SMS", "", "ie", 1, 10),
+        ("Concierge SMS", "Confirm Phone Number Approval", "", "ie", 5, 20),
+
+        # Group 8: Custom Widget
+        ("Custom Widget", "Create a custom widget", "", "ie", 0, 10),
+
+        # Group 9: Revenue Growth Feature Activation
+        ("Revenue Growth Feature Activation", "Recharge Cart + Cart Overlay", "", "ie", 0, 10),
+        ("Revenue Growth Feature Activation", "Set up Post-Purchase Cross-Sell", "", "ie", 0, 20),
+        ("Revenue Growth Feature Activation", "Set up Checkout Cross-sell", "", "ie", 0, 30),
+
+        # Group 10: Automate
+        ("Automate", "Build Automate experiences", "", "ie", 0, 10),
+
+        # Group 11: Configure Gift Subscriptions
+        ("Configure Gift Subscriptions", "Set up Gift Subscriptions", "", "ie", 0, 10),
+
+        # Group 12: Legacy Subscription Widget
+        ("Legacy Subscription Widget", "Set up Recharge subscription widget", "", "ie", 0, 10),
+        ("Legacy Subscription Widget", "Set Subscription as the Default Option - Recommended", "", "ie", 0, 20),
+        ("Legacy Subscription Widget", "Preview the Subscription Widget", "", "ie", 0, 30),
+
+        # Group 13: Handoff
+        ("Handoff", "Open Risk if Subscription Scorecard is <50%", "", "ie", 0, 10),
+        ("Handoff", "Transition merchant to the next phase of support", "", "ie", 1, 20),
+        ("Handoff", "Complete Customer Effort Score", "", "merchant", 1, 30),
+        ("Handoff", "Congratulations! You've Completed Recharge Implementation", "", "merchant", 0, 40),
     ]
 
     template_map = {
