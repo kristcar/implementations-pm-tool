@@ -241,11 +241,41 @@ def _seed_templates(conn):
         ("Migration", "Migration Complete", "", "ie", 0, 120),
     ]
 
+    store_optimization_tasks = [
+        # Group 1: Kickoff and Confirm Scope
+        ("Kickoff and Confirm Scope", "🗓 Schedule call and Review / Confirm Project details", "", "ie", 2, 10),
+        ("Kickoff and Confirm Scope", "Approve Scoping & Project Plan", "", "merchant", 1, 20),
+
+        # Group 2: Retain Setup
+        ("Retain Setup", "Configure Failed Payment Recovery", "", "merchant", 1, 10),
+        ("Retain Setup", "Enable Frictionless Payment Updates", "", "merchant", 0, 20),
+        ("Retain Setup", "Configure the \"Incentivize Friends\" Flow", "", "merchant", 1, 30),
+        ("Retain Setup", "Configure the \"Reward Advocates\" Flow", "", "merchant", 1, 40),
+        ("Retain Setup", "(Optional): Refer Friends After Checkout", "", "merchant", 0, 50),
+        ("Retain Setup", "(Optional): Send Reminder to Refer Friends", "", "merchant", 0, 60),
+        ("Retain Setup", "Configure Rewards", "", "merchant", 4, 70),
+        ("Retain Setup", "Cash-back credits talking points", "", "ie", 0, 80),
+        ("Retain Setup", "Additional Reward strategies", "", "ie", 0, 90),
+        ("Retain Setup", "Build Rewards: Cash-back Credits Experience", "", "merchant", 1, 100),
+        ("Retain Setup", "Review Credit settings", "", "merchant", 1, 110),
+        ("Retain Setup", "Review Credit translations", "", "merchant", 1, 120),
+        ("Retain Setup", "Activate Rewards flow", "", "merchant", 1, 130),
+        ("Retain Setup", "Configure Cancellation Prevention", "", "merchant", 2, 140),
+        ("Retain Setup", "Complete Cancellation Prevention setup", "", "merchant", 1, 150),
+
+        # Group 3: Handoff
+        ("Handoff", "Open Risk if Subscription Scorecard is <50%", "", "ie", 0, 20),
+        ("Handoff", "Transition merchant to the next phase of support", "", "ie", 1, 30),
+        ("Handoff", "Complete Customer Effort Score", "", "merchant", 1, 40),
+        ("Handoff", "Congratulations! You've Completed Recharge Implementation", "", "merchant", 0, 50),
+    ]
+
     template_map = {
         "optimized_activation": optimized_activation_tasks,
         "optimized_subscription_migration": optimized_subscription_migration_tasks,
         "recharge_strategic_migration": recharge_strategic_migration_tasks,
         "skio": skio_tasks,
+        "store_optimization": store_optimization_tasks,
     }
 
     for tpl_type, rows in template_map.items():

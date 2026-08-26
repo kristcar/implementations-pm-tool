@@ -6,6 +6,40 @@ import models
 app = Flask(__name__)
 app.secret_key = "dev-secret-change-in-prod"
 
+import os as _os
+def _read_file(name, default=""):
+    try:
+        return open(_os.path.join(_os.path.dirname(__file__), name)).read().strip()
+    except Exception:
+        return default
+
+@app.context_processor
+def inject_env():
+    env = _read_file("environment.txt", "production")
+    version = _read_file("version.txt", "0.2")
+    return {"app_environment": env, "app_version": version}
+
+
+def _is_late(project, today):
+    """Return True if the project should be considered Late."""
+    from datetime import date as _date
+    if project["status"] != "active":
+        return False
+    if project["template_type"] == "store_optimization":
+        # Late if not done within 40 days of assignment date
+        try:
+            assigned = _date.fromisoformat(project["contract_start_date"])
+            return today > assigned + __import__("datetime").timedelta(days=40)
+        except (ValueError, TypeError):
+            return False
+    else:
+        # Late if SSD (contract_start_date) is in the past
+        try:
+            ssd = _date.fromisoformat(project["contract_start_date"])
+            return ssd < today
+        except (ValueError, TypeError):
+            return False
+
 
 def login_required(f):
     @wraps(f)
@@ -64,11 +98,7 @@ def project_list():
             elapsed = (today - start).days if start else None
         except ValueError:
             elapsed = None
-        try:
-            target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
-            is_late = p["status"] == "active" and target is not None and target < today
-        except ValueError:
-            is_late = False
+        is_late = _is_late(p, today)
         enriched.append({"project": p, "progress": prog, "overdue": overdue, "elapsed": elapsed, "is_late": is_late})
 
     def sort_key(item):
@@ -99,7 +129,7 @@ def my_projects():
         prog = models.project_progress(p["id"])
         overdue = models.overdue_task_count(p["id"])
         try:
-            target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
+            target = date.fromisoformat(p["contract_start_date"]) if p["contract_start_date"] else None
             days_until = (target - today).days if target else None
         except ValueError:
             days_until = None
@@ -109,7 +139,7 @@ def my_projects():
         prog = models.project_progress(p["id"])
         overdue = models.overdue_task_count(p["id"])
         try:
-            target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
+            target = date.fromisoformat(p["contract_start_date"]) if p["contract_start_date"] else None
             days_until = (target - today).days if target else None
         except ValueError:
             days_until = None
@@ -165,12 +195,15 @@ def project_detail(project_id):
     timeline_message = _timeline_message(project)
     from datetime import date
     today = date.today()
-    try:
-        target = date.fromisoformat(project["target_go_live_date"]) if project["target_go_live_date"] else None
-        is_late = project["status"] == "active" and target is not None and target < today
-    except ValueError:
-        is_late = False
+    is_late = _is_late(project, today)
     ie_owners = models.list_ie_owners()
+    db = models.get_db()
+    last_task = db.execute(
+        "SELECT MAX(due_date) as last_due FROM tasks WHERE project_id=? AND due_date IS NOT NULL",
+        (project_id,)
+    ).fetchone()
+    projected_end = last_task["last_due"] if last_task else None
+    db.close()
     return render_template(
         "projects/detail.html",
         project=project,
@@ -180,6 +213,7 @@ def project_detail(project_id):
         timeline_message=timeline_message,
         is_late=is_late,
         ie_owners=ie_owners,
+        projected_end=projected_end,
     )
 
 
@@ -235,6 +269,72 @@ def project_edit(project_id):
     data.update({k: v for k, v in request.form.to_dict().items() if v != ""})
     models.update_project(project_id, data)
     flash("Project updated.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/reschedule", methods=["POST"])
+@login_required
+def project_reschedule(project_id):
+    from datetime import date, timedelta
+    project = models.get_project(project_id)
+    if not project:
+        flash("Project not found.", "danger")
+        return redirect(url_for("project_list"))
+    new_target_str = request.form.get("new_target_date", "").strip()
+    try:
+        new_target = date.fromisoformat(new_target_str)
+    except (ValueError, TypeError):
+        flash("Invalid date.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+
+    today = date.today()
+    if new_target <= today:
+        flash("New target date must be in the future.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+
+    db = models.get_db()
+    c = db.cursor()
+
+    # Fetch all incomplete tasks with due dates, ordered by due date
+    incomplete = c.execute(
+        "SELECT id, due_date FROM tasks WHERE project_id=? AND status != 'complete' AND due_date IS NOT NULL ORDER BY due_date",
+        (project_id,)
+    ).fetchall()
+
+    if incomplete:
+        dates = [date.fromisoformat(r["due_date"]) for r in incomplete]
+        earliest = min(dates)
+        latest = max(dates)
+        span_old = max((latest - earliest).days, 1)
+        span_new = (new_target - today).days
+
+        for row, d in zip(incomplete, dates):
+            # Position of this task within the old span (0.0 to 1.0)
+            ratio = (d - earliest).days / span_old
+            new_due = today + timedelta(days=round(ratio * span_new))
+            c.execute("UPDATE tasks SET due_date=? WHERE id=?", (new_due.isoformat(), row["id"]))
+
+    # Update project go-live target
+    c.execute("UPDATE projects SET target_go_live_date=? WHERE id=?", (new_target.isoformat(), project_id))
+
+    # Recalculate milestone dates from task groups
+    groups = c.execute("SELECT id FROM task_groups WHERE project_id=?", (project_id,)).fetchall()
+    for g in groups:
+        last = c.execute(
+            "SELECT MAX(due_date) as last_due FROM tasks WHERE task_group_id=? AND due_date IS NOT NULL",
+            (g["id"],)
+        ).fetchone()
+        if last and last["last_due"]:
+            c.execute(
+                "UPDATE milestones SET target_date=? WHERE project_id=? AND name=(SELECT name FROM task_groups WHERE id=?)",
+                (last["last_due"], project_id, g["id"])
+            )
+
+    db.commit()
+    db.close()
+
+    count = len(incomplete)
+    flash(f"Rescheduled {count} incomplete task{'s' if count != 1 else ''} to align with new go-live: {new_target.isoformat()}.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -372,6 +472,15 @@ def task_delete(task_id):
     return redirect(url_for("project_list"))
 
 
+@app.route("/projects/<int:project_id>/tasks/bulk-delete", methods=["POST"])
+@login_required
+def tasks_bulk_delete(project_id):
+    ids = request.form.getlist("task_ids")
+    for tid in ids:
+        models.delete_task(int(tid))
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 # ── Proposal ──────────────────────────────────────────────────────────────────
 
 @app.route("/projects/<int:project_id>/proposal")
@@ -446,11 +555,7 @@ def _build_snapshot():
             (pid,)
         ).fetchone()
         projected_end = last_task["last_due"] if last_task else None
-        try:
-            target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
-            is_late = target is not None and target < today
-        except ValueError:
-            is_late = False
+        is_late = _is_late(p, today)
         snapshot.append({
             "id": pid,
             "merchant_name": p["merchant_name"] or p["name"],
@@ -494,6 +599,7 @@ def weekly_snapshot_csv():
         "optimized_subscription_migration": "Recharge Optimized Subscription Migration",
         "recharge_strategic_migration": "Recharge Strategic Implementation",
         "skio": "Skio",
+        "store_optimization": "Store Optimization",
     }
 
     output = io.StringIO()
@@ -532,6 +638,7 @@ def reporting():
         "optimized_subscription_migration": "Recharge Optimized Subscription Migration",
         "recharge_strategic_migration": "Recharge Strategic Implementation",
         "skio": "Skio",
+        "store_optimization": "Store Optimization",
         "standard": "Recharge Optimized Activation",
         "enterprise": "Recharge Strategic Implementation",
     }
@@ -545,7 +652,7 @@ def reporting():
         label = pathway_labels.get(p["template_type"] or "", p["template_type"] or "Unknown")
         if p["status"] == "active":
             try:
-                target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
+                target = date.fromisoformat(p["contract_start_date"]) if p["contract_start_date"] else None
                 is_late = target is not None and target < today
             except ValueError:
                 is_late = False
@@ -588,7 +695,7 @@ def reporting():
         if p["status"] != "active":
             continue
         try:
-            target = date.fromisoformat(p["target_go_live_date"]) if p["target_go_live_date"] else None
+            target = date.fromisoformat(p["contract_start_date"]) if p["contract_start_date"] else None
         except ValueError:
             target = None
         if not target:

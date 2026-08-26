@@ -14,7 +14,7 @@
   <a class="navbar-brand" href="{{ url_for('project_list') }}">
     <img src="{{ url_for('static', filename='img/recharge-wordmark.png') }}" alt="ReCharge" height="28" class="me-2">
     <span class="navbar-divider">|</span>
-    <span class="navbar-subtitle">Implementations</span>
+    <span class="navbar-subtitle">Runway{% if app_environment == 'sandbox' %} &nbsp;<span style="font-size:0.65rem; background:#ec4899; color:#fff; border-radius:4px; padding:1px 6px; font-weight:700; letter-spacing:0.05em; vertical-align:middle;">SANDBOX</span>{% endif %}</span>
   </a>
   <div class="navbar-nav ms-auto d-flex align-items-center gap-1">
     <a class="nav-link {% if request.endpoint == 'my_projects' %}nav-link-active{% endif %}"

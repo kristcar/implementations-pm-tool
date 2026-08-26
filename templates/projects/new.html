@@ -11,33 +11,42 @@
       <!-- Template chooser -->
       <div class="mb-4">
         <label class="form-label fw-semibold">Implementation Template</label>
-        <div class="row g-3">
-          <div class="col-md-3">
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
             <input type="radio" class="btn-check" name="template_type" id="tpl_optimized_activation" value="optimized_activation" checked>
             <label class="btn btn-tpl-activation w-100 h-100 text-start p-3" for="tpl_optimized_activation">
               <div class="fw-bold mb-1">⚡ Recharge Optimized Activation</div>
               <div class="small" style="color:#0129F1; opacity:0.75;">New merchant activating ReCharge for the first time.</div>
             </label>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-4">
             <input type="radio" class="btn-check" name="template_type" id="tpl_optimized_subscription_migration" value="optimized_subscription_migration">
             <label class="btn btn-tpl-migration w-100 h-100 text-start p-3" for="tpl_optimized_subscription_migration">
               <div class="fw-bold mb-1">✨ Recharge Optimized Subscription Migration</div>
               <div class="small" style="color:#6b7a00; opacity:0.85;">Merchant migrating subscriptions from another platform.</div>
             </label>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-4">
             <input type="radio" class="btn-check" name="template_type" id="tpl_recharge_strategic_migration" value="recharge_strategic_migration">
             <label class="btn btn-tpl-strategic w-100 h-100 text-start p-3" for="tpl_recharge_strategic_migration">
               <div class="fw-bold mb-1">🚀 Recharge Strategic Implementation</div>
               <div class="small" style="color:#c0293c; opacity:0.85;">Complex migration requiring strategic planning and phased rollout.</div>
             </label>
           </div>
-          <div class="col-md-3">
+        </div>
+        <div class="row g-3 justify-content-center">
+          <div class="col-md-4">
             <input type="radio" class="btn-check" name="template_type" id="tpl_skio" value="skio">
             <label class="btn btn-tpl-skio w-100 h-100 text-start p-3" for="tpl_skio">
               <div class="fw-bold mb-1">🐱 Skio</div>
               <div class="small" style="color:#5b21b6; opacity:0.85;">Merchant is onboarding onto Skio.</div>
+            </label>
+          </div>
+          <div class="col-md-4">
+            <input type="radio" class="btn-check" name="template_type" id="tpl_store_optimization" value="store_optimization">
+            <label class="btn btn-tpl-store-optimization w-100 h-100 text-start p-3" for="tpl_store_optimization">
+              <div class="fw-bold mb-1">🛍️ Store Optimization</div>
+              <div class="small" style="color:#9d174d; opacity:0.85;">Cross Sell / Upsell projects.</div>
             </label>
           </div>
         </div>
@@ -52,7 +61,7 @@
               <input type="text" name="merchant_name" id="merchant_name" class="form-control" placeholder="Acme Co" required>
               <input type="hidden" name="name" id="name_hidden">
             </div>
-            <div class="col-md-6">
+            <div class="col-md-12">
               <label class="form-label">Implementation Engineer</label>
               <select name="ie_owner" class="form-select">
                 <option value="">— Select IE —</option>
@@ -62,28 +71,13 @@
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Platform</label>
-              <select name="platform" class="form-select">
-                <option value="">Select platform…</option>
-                <option>Shopify</option>
-                <option>Shopify Plus</option>
-                <option>BigCommerce</option>
-                <option>Salesforce Commerce Cloud</option>
-                <option>Custom / Headless</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Contract Start Date</label>
+              <label class="form-label" id="contract_start_label">Contract Start Date</label>
               <input type="date" name="contract_start_date" class="form-control">
-              <div class="form-text">Used to calculate task due dates from the template.</div>
+              <div class="form-text" id="contract_start_help">Used to calculate task due dates from the template.</div>
             </div>
             <div class="col-md-6">
               <label class="form-label">Target Go-Live Date</label>
               <input type="date" name="target_go_live_date" class="form-control">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Notes</label>
-              <textarea name="notes" class="form-control" rows="3" placeholder="Any special scope, custom commitments, or context…"></textarea>
             </div>
           </div>
         </div>
@@ -103,6 +97,19 @@
 document.querySelector('form').addEventListener('submit', function() {
   document.getElementById('name_hidden').value = document.getElementById('merchant_name').value;
 });
+
+function updateStartDateLabel() {
+  const isStoreOpt = document.getElementById('tpl_store_optimization').checked;
+  document.getElementById('contract_start_label').textContent = isStoreOpt ? 'Project Assignment Date' : 'Contract Start Date';
+  document.getElementById('contract_start_help').textContent = isStoreOpt
+    ? 'Project is considered Late if not marked Done within 40 days of this date.'
+    : 'Used to calculate task due dates from the template.';
+}
+
+document.querySelectorAll('input[name="template_type"]').forEach(function(r) {
+  r.addEventListener('change', updateStartDateLabel);
+});
+updateStartDateLabel();
 </script>
 {% endblock %}
 {% endblock %}

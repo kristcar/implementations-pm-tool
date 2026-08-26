@@ -86,7 +86,8 @@
               'optimized_activation': 'Recharge Optimized Activation',
               'optimized_subscription_migration': 'Recharge Optimized Subscription Migration',
               'recharge_strategic_migration': 'Recharge Strategic Implementation',
-              'skio': 'Skio'
+              'skio': 'Skio',
+              'store_optimization': '🛍️ Store Optimization'
             } %}
             <span class="tpl-badge tpl-{{ p['template_type'] }}">{{ tpl_labels.get(p['template_type'], p['template_type']) }}</span>
             {% endif %}
@@ -106,13 +107,13 @@
           {% if p['status'] == 'complete' %}
             <div class="small mb-2" style="color:#3a7d13;"><i class="bi bi-check-circle me-1"></i>Complete</div>
           {% elif item.days_until < 0 %}
-            <div class="small mb-2 text-danger fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>{{ item.days_until|abs }} days past go-live</div>
+            <div class="small mb-2 text-danger fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>{{ item.days_until|abs }} days past SSD</div>
           {% elif item.days_until == 0 %}
             <div class="small mb-2 text-danger fw-semibold"><i class="bi bi-rocket me-1"></i>Go-live today!</div>
           {% elif item.days_until <= 14 %}
-            <div class="small mb-2 fw-semibold" style="color:#c46000;"><i class="bi bi-calendar-check me-1"></i>{{ item.days_until }} days to go-live</div>
+            <div class="small mb-2 fw-semibold" style="color:#c46000;"><i class="bi bi-calendar-check me-1"></i>{{ item.days_until }} days to SSD</div>
           {% else %}
-            <div class="small mb-2 text-muted"><i class="bi bi-calendar me-1"></i>{{ item.days_until }} days to go-live</div>
+            <div class="small mb-2 text-muted"><i class="bi bi-calendar me-1"></i>{{ item.days_until }} days to SSD</div>
           {% endif %}
         {% endif %}
 

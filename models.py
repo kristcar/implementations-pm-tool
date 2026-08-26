@@ -58,13 +58,13 @@ def create_project(data):
         ),
     )
     project_id = c.lastrowid
-    _instantiate_template(db, project_id, data["template_type"], data.get("contract_start_date"))
+    _instantiate_template(db, project_id, data["template_type"], date.today().isoformat(), data.get("target_go_live_date"))
     db.commit()
     db.close()
     return project_id
 
 
-def _instantiate_template(db, project_id, template_type, start_date_str):
+def _instantiate_template(db, project_id, template_type, start_date_str, target_date_str=None):
     c = db.cursor()
     rows = c.execute(
         "SELECT * FROM project_templates WHERE template_type = ? ORDER BY id",
@@ -75,6 +75,23 @@ def _instantiate_template(db, project_id, template_type, start_date_str):
         start = date.fromisoformat(start_date_str) if start_date_str else date.today()
     except (ValueError, TypeError):
         start = date.today()
+
+    try:
+        target = date.fromisoformat(target_date_str) if target_date_str else None
+    except (ValueError, TypeError):
+        target = None
+
+    # Build cumulative prefix-sum offsets: task i's offset = sum of durations of all tasks before it
+    # This means task 0 starts at day 0 (today) and each subsequent task is placed after the previous one's duration
+    durations = [row["days_offset"] for row in rows]
+    cum_offsets = []
+    running = 0
+    for d in durations:
+        cum_offsets.append(running)
+        running += d
+    total_natural = running  # sum of all durations = natural project length
+
+    total_span = (target - start).days if target else None
 
     groups = {}
     group_order = 0
@@ -88,40 +105,33 @@ def _instantiate_template(db, project_id, template_type, start_date_str):
             groups[gname] = c.lastrowid
             group_order += 1
 
-    for row in rows:
+    for i, row in enumerate(rows):
         gname = row["group_name"]
-        due = (start + timedelta(days=row["days_offset"])).isoformat()
+        if target and total_natural > 0 and total_span is not None:
+            scaled_days = round(cum_offsets[i] / total_natural * total_span)
+        else:
+            scaled_days = cum_offsets[i]
+        due = (start + timedelta(days=scaled_days)).isoformat()
         c.execute(
             """INSERT INTO tasks (project_id, task_group_id, title, description, owner, due_date, sort_order)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (project_id, groups[gname], row["task_title"], row["task_description"], row["owner"], due, row["sort_order"]),
         )
 
-    # Create standard milestones based on template
-    milestones_standard = [
-        ("Kickoff and Confirm Scope", 7),
-        ("Recharge/Shopify Configuration", 14),
-        ("Configure Subscription Checkout Flow", 21),
-        ("Configure Customer Experience", 35),
-        ("Test & Go-Live", 56),
-        ("Handoff", 60),
-    ]
-    milestones_enterprise = [
-        ("Kickoff Call", 14),
-        ("Solution Design Approved", 35),
-        ("Migration Plan Approved", 50),
-        ("Configuration Complete", 80),
-        ("UAT Sign-off", 100),
-        ("Migration Complete", 115),
-        ("Go-Live", 125),
-        ("Project Closed", 160),
-    ]
-    ms_list = milestones_enterprise if template_type == "enterprise" else milestones_standard
-    for i, (name, offset) in enumerate(ms_list):
-        target = (start + timedelta(days=offset)).isoformat()
+    # Derive milestones from task groups — name and date match what was actually created
+    group_rows = c.execute(
+        "SELECT id, name, sort_order FROM task_groups WHERE project_id=? ORDER BY sort_order",
+        (project_id,)
+    ).fetchall()
+    for i, g in enumerate(group_rows):
+        last = c.execute(
+            "SELECT MAX(due_date) as last_due FROM tasks WHERE task_group_id=? AND due_date IS NOT NULL",
+            (g["id"],)
+        ).fetchone()
+        target_date = last["last_due"] if last and last["last_due"] else start.isoformat()
         c.execute(
             "INSERT INTO milestones (project_id, name, target_date, status, sort_order) VALUES (?,?,?,?,?)",
-            (project_id, name, target, "upcoming", i),
+            (project_id, g["name"], target_date, "upcoming", i),
         )
 
 
