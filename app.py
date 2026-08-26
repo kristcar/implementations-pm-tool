@@ -809,4 +809,8 @@ def api_progress(project_id):
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True, port=5050)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=5050)
+    args = parser.parse_args()
+    app.run(debug=True, port=args.port)
