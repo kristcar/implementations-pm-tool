@@ -154,6 +154,11 @@ body { background-color: #f7f8fc; }
 .phase-5 .card-header { border-left: 4px solid var(--rc-melon); }
 .phase-6 .card-header { border-left: 4px solid var(--rc-rose); }
 .phase-7 .card-header { border-left: 4px solid var(--rc-red); }
+.phase-8 .card-header { border-left: 4px solid var(--rc-cobalt); }
+.phase-9 .card-header { border-left: 4px solid var(--rc-purple); }
+.phase-10 .card-header { border-left: 4px solid var(--rc-aero); }
+.phase-11 .card-header { border-left: 4px solid var(--rc-teal); }
+.phase-12 .card-header { border-left: 4px solid var(--rc-lime); }
 
 .phase-0 [data-group-id] { background-color: var(--rc-cobalt) !important; }
 .phase-1 [data-group-id] { background-color: var(--rc-purple) !important; }
@@ -163,6 +168,11 @@ body { background-color: #f7f8fc; }
 .phase-5 [data-group-id] { background-color: var(--rc-melon) !important; }
 .phase-6 [data-group-id] { background-color: var(--rc-rose) !important; }
 .phase-7 [data-group-id] { background-color: var(--rc-red) !important; }
+.phase-8 [data-group-id] { background-color: var(--rc-cobalt) !important; }
+.phase-9 [data-group-id] { background-color: var(--rc-purple) !important; }
+.phase-10 [data-group-id] { background-color: var(--rc-aero) !important; }
+.phase-11 [data-group-id] { background-color: var(--rc-teal) !important; }
+.phase-12 [data-group-id] { background-color: var(--rc-lime) !important; }
 
 /* ── Add task button ── */
 .add-task-btn {
