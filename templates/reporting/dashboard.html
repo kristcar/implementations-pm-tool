@@ -282,7 +282,7 @@ new Chart(document.getElementById('activeStatusChart'), {
           label: function(ctx) {
             const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
             const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
-            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}%)`;
+            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}% out of ${total})`;
           }
         }
       }
@@ -313,7 +313,7 @@ new Chart(document.getElementById('activePathwayChart'), {
           label: function(ctx) {
             const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
             const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
-            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}%)`;
+            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}% out of ${total})`;
           }
         }
       }
@@ -344,7 +344,7 @@ new Chart(document.getElementById('donePathwayChart'), {
           label: function(ctx) {
             const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
             const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
-            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}%)`;
+            return ` ${ctx.label}: ${ctx.parsed} project${ctx.parsed !== 1 ? 's' : ''} (${pct}% out of ${total})`;
           }
         }
       }
@@ -377,7 +377,7 @@ new Chart(document.getElementById('ieCountChart'), {
           label: function(ctx) {
             const ieTotal = ctx.chart.data.datasets.reduce((sum, ds) => sum + (ds.data[ctx.dataIndex] || 0), 0);
             const pct = ieTotal > 0 ? Math.round(ctx.parsed.y / ieTotal * 100) : 0;
-            return ` ${ctx.dataset.label}: ${ctx.parsed.y} project${ctx.parsed.y !== 1 ? 's' : ''} (${pct}% of ${ieTotal})`;
+            return ` ${ctx.dataset.label}: ${ctx.parsed.y} project${ctx.parsed.y !== 1 ? 's' : ''} (${pct}% out of ${ieTotal})`;
           }
         }
       }
