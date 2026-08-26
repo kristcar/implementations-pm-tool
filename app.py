@@ -811,6 +811,8 @@ if __name__ == "__main__":
     init_db()
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=5050)
+    env = _read_file("environment.txt", "production")
+    default_port = 5051 if env == "sandbox" else 5050
+    parser.add_argument("--port", type=int, default=default_port)
     args = parser.parse_args()
     app.run(debug=True, port=args.port)
