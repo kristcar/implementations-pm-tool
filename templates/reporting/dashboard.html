@@ -49,7 +49,7 @@
       <select id="engagedIE" class="form-select form-select-sm" style="width:180px;">
         <option value="">All IEs</option>
         {% for ie in ie_owners_list %}
-        <option value="{{ ie }}">{{ ie }}</option>
+        <option value="{{ ie }}" {% if ie == session.current_user %}selected{% endif %}>{{ ie }}</option>
         {% endfor %}
       </select>
     </div>
