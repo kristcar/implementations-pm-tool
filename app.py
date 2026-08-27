@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, session
 from functools import wraps
-from database import init_db
+from database import init_db, migrate_db
 import models
 
 app = Flask(__name__)
@@ -809,6 +809,7 @@ def api_progress(project_id):
 
 if __name__ == "__main__":
     init_db()
+    migrate_db()
     import argparse
     parser = argparse.ArgumentParser()
     env = _read_file("environment.txt", "production")

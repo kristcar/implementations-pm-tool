@@ -12,6 +12,48 @@ def get_db():
     return conn
 
 
+def migrate_db():
+    """Run any pending schema migrations. Safe to call on every startup."""
+    conn = get_db()
+    c = conn.cursor()
+
+    # Create version tracking table if it doesn't exist
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS schema_version (
+            version INTEGER NOT NULL
+        )
+    """)
+    row = c.execute("SELECT version FROM schema_version").fetchone()
+    current = row["version"] if row else 0
+
+    migrations = [
+        # v1 — baseline schema (already exists for everyone, just stamp the version)
+        None,
+        # v2 — add risk_flag to projects
+        "ALTER TABLE projects ADD COLUMN risk_flag INTEGER NOT NULL DEFAULT 0",
+    ]
+
+    for v, sql in enumerate(migrations, start=1):
+        if current < v:
+            if sql:
+                try:
+                    c.execute(sql)
+                except Exception as e:
+                    # Column may already exist on fresh installs via init_db
+                    if "duplicate column name" not in str(e).lower():
+                        raise
+            current = v
+
+    # Write final version back — insert if no row exists, update if one does
+    if row:
+        c.execute("UPDATE schema_version SET version = ?", (current,))
+    else:
+        c.execute("INSERT INTO schema_version (version) VALUES (?)", (current,))
+
+    conn.commit()
+    conn.close()
+
+
 def init_db():
     conn = get_db()
     c = conn.cursor()
@@ -29,6 +71,7 @@ def init_db():
             target_go_live_date DATE,
             actual_go_live_date DATE,
             notes TEXT,
+            risk_flag INTEGER NOT NULL DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
