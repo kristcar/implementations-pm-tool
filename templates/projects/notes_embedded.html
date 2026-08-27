@@ -46,6 +46,8 @@
             <span class="text-muted" style="font-size:0.7rem;">{{ note['created_at'][:16].replace('T', ' ') }}</span>
             {% if note['author'] == session.current_user %}
             <form method="POST" action="{{ url_for('project_notes_delete', project_id=project['id'], note_id=note['id']) }}" style="display:inline; margin-left:auto;">
+              <input type="hidden" name="embedded" value="1">
+              <input type="hidden" name="panel" value="{{ panel }}">
               <button type="submit" class="btn btn-link p-0 text-muted" style="font-size:0.7rem;" onclick="return confirm('Delete this note?')">
                 <i class="bi bi-trash"></i>
               </button>

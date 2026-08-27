@@ -7,6 +7,16 @@ import models
 app = Flask(__name__)
 app.secret_key = "dev-secret-change-in-prod"
 
+@app.template_filter("fmtdate")
+def fmtdate(value):
+    if not value:
+        return "—"
+    try:
+        parts = str(value)[:10].split("-")
+        return f"{parts[1]}/{parts[2]}/{parts[0]}"
+    except Exception:
+        return value
+
 import os as _os
 def _read_file(name, default=""):
     try:
@@ -561,7 +571,10 @@ def project_notes_delete(project_id, note_id):
     db.execute("DELETE FROM project_notes WHERE id=? AND project_id=?", (note_id, project_id))
     db.commit()
     db.close()
-    return redirect(url_for("project_notes", project_id=project_id))
+    embedded = request.form.get("embedded") or request.args.get("embedded")
+    panel = request.form.get("panel") or request.args.get("panel", "notes")
+    return redirect(url_for("project_notes", project_id=project_id,
+                            embedded=embedded or None, panel=panel if embedded else None))
 
 
 # ── Tasks ─────────────────────────────────────────────────────────────────────
@@ -706,6 +719,12 @@ def _build_snapshot():
         ).fetchone()
         projected_end = last_task["last_due"] if last_task else None
         is_late = _is_late(p, today)
+        last_note_row = db.execute(
+            "SELECT message, created_at FROM project_notes WHERE project_id=? ORDER BY created_at DESC LIMIT 1",
+            (pid,)
+        ).fetchone()
+        last_note = last_note_row["message"] if last_note_row else ""
+        last_note_date = last_note_row["created_at"][:10] if last_note_row and last_note_row["created_at"] else ""
         snapshot.append({
             "id": pid,
             "merchant_name": p["merchant_name"] or p["name"],
@@ -716,6 +735,8 @@ def _build_snapshot():
             "milestone": milestone,
             "pct": pct,
             "is_late": is_late,
+            "last_note": last_note,
+            "last_note_date": last_note_date,
         })
     db.close()
     return snapshot, today.isoformat()
@@ -754,16 +775,19 @@ def weekly_snapshot_csv():
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Merchant", "IE Owner", "Template", "Current Milestone", "Projected End Date", "% Complete", "Status"])
+    writer.writerow(["Merchant", "IE Owner", "Template", "Current Milestone", "Go-Live Target", "Final Task Due Date", "% Complete", "Status", "Last Note", "Last Note Date"])
     for p in snapshot:
         writer.writerow([
             p["merchant_name"],
             p["ie_owner"],
             tpl_labels.get(p["template_type"], p["template_type"] or ""),
             p["milestone"],
+            p["target_go_live_date"],
             p["projected_end"],
             f"{p['pct']}%",
             "Late" if p["is_late"] else "On Time",
+            p["last_note"],
+            p["last_note_date"],
         ])
 
     response = make_response(output.getvalue())

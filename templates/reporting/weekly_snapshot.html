@@ -11,15 +11,23 @@
   <a href="{{ url_for('weekly_snapshot_csv', ie=ie_filter) }}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-download me-1"></i>Download CSV
   </a>
-  <form method="GET" action="{{ url_for('weekly_snapshot') }}" class="d-flex align-items-center gap-2">
-    <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
-    <select name="ie" class="form-select form-select-sm" style="width:180px;" onchange="this.form.submit()">
-      <option value="">All IEs</option>
-      {% for ie in ie_owners %}
-      <option value="{{ ie }}" {% if ie == ie_filter %}selected{% endif %}>{{ ie }}</option>
-      {% endfor %}
-    </select>
-  </form>
+  <div class="d-flex flex-column gap-2">
+    <form method="GET" action="{{ url_for('weekly_snapshot') }}" class="d-flex align-items-center gap-2">
+      <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
+      <select name="ie" class="form-select form-select-sm" style="width:180px;" onchange="this.form.submit()">
+        <option value="">All IEs</option>
+        {% for ie in ie_owners %}
+        <option value="{{ ie }}" {% if ie == ie_filter %}selected{% endif %}>{{ ie }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">Show Notes</label>
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="toggleNotesSwitch" onchange="toggleNotes(this)" style="cursor:pointer;">
+      </div>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -45,11 +53,13 @@
             <i class="bi bi-info-circle ms-1" style="font-size:0.7rem; cursor:default;" data-bs-toggle="tooltip" title="The go-live date manually set on the project. This is the goal the team is working toward."></i>
           </th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">
-            Projected End
+            Final Task Due Date
             <i class="bi bi-info-circle ms-1" style="font-size:0.7rem; cursor:default;" data-bs-toggle="tooltip" title="The due date of the latest task on the project. May differ from Go-Live Target if tasks have been manually adjusted."></i>
           </th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; width:160px;">% Complete</th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Status</th>
+          <th class="py-3 col-notes" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; max-width:260px; display:none;">Last Note</th>
+          <th class="py-3 col-notes" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; display:none;">Last Note Date</th>
         </tr>
       </thead>
       <tbody>
@@ -61,8 +71,8 @@
             <span class="small">{{ tpl_labels.get(p.template_type, p.template_type or '—') }}</span>
           </td>
           <td class="small" style="max-width:220px;">{{ p.milestone }}</td>
-          <td class="small text-muted">{{ p.target_go_live_date or '—' }}</td>
-          <td class="small text-muted">{{ p.projected_end or '—' }}</td>
+          <td class="small text-muted">{{ p.target_go_live_date | fmtdate }}</td>
+          <td class="small text-muted">{{ p.projected_end | fmtdate }}</td>
           <td>
             <div class="d-flex align-items-center gap-2">
               <div class="progress flex-grow-1" style="height:8px; border-radius:4px;">
@@ -78,10 +88,21 @@
               <span class="badge rounded-pill" style="background:#f0fdf4; color:#166534; font-weight:500;">On Time</span>
             {% endif %}
           </td>
+          <td class="small text-muted col-notes" style="max-width:260px; white-space:normal; display:none;">
+            {% if p.last_note %}
+              {% set words = p.last_note.split() %}
+              {% if words|length > 50 %}
+                {{ words[:50]|join(' ') }}… <a href="/projects/{{ p.id }}#notes" class="text-decoration-none" style="color:#6366f1; white-space:nowrap;" onclick="event.stopPropagation()">Read more</a>
+              {% else %}
+                {{ p.last_note }}
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="small text-muted col-notes" style="white-space:nowrap; display:none;">{{ p.last_note_date | fmtdate }}</td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="8" class="text-center text-muted py-5">No active projects.</td>
+          <td colspan="10" class="text-center text-muted py-5">No active projects.</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -95,5 +116,11 @@
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
 });
+
+function toggleNotes(checkbox) {
+  document.querySelectorAll('.col-notes').forEach(el => {
+    el.style.display = checkbox.checked ? '' : 'none';
+  });
+}
 </script>
 {% endblock %}
