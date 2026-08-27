@@ -314,22 +314,22 @@ def project_reschedule(project_id):
     db = models.get_db()
     c = db.cursor()
 
-    # Fetch all incomplete tasks with due dates, ordered by due date
+    # Fetch all incomplete tasks ordered by logical sequence (group order, then task order)
     incomplete = c.execute(
-        "SELECT id, due_date FROM tasks WHERE project_id=? AND status != 'complete' AND due_date IS NOT NULL ORDER BY due_date",
+        """SELECT t.id, t.due_date FROM tasks t
+           LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+           WHERE t.project_id=? AND t.status != 'complete' AND t.due_date IS NOT NULL
+           ORDER BY COALESCE(tg.sort_order, 0), t.sort_order""",
         (project_id,)
     ).fetchall()
 
     if incomplete:
-        dates = [date.fromisoformat(r["due_date"]) for r in incomplete]
-        earliest = min(dates)
-        latest = max(dates)
-        span_old = max((latest - earliest).days, 1)
-        span_new = (new_target - today).days
+        n = len(incomplete)
+        span_new = max((new_target - today).days, n)
 
-        for row, d in zip(incomplete, dates):
-            # Position of this task within the old span (0.0 to 1.0)
-            ratio = (d - earliest).days / span_old
+        for i, row in enumerate(incomplete):
+            # Distribute evenly across the span, preserving sequential order
+            ratio = i / (n - 1) if n > 1 else 1.0
             new_due = today + timedelta(days=round(ratio * span_new))
             c.execute("UPDATE tasks SET due_date=? WHERE id=?", (new_due.isoformat(), row["id"]))
 
@@ -630,18 +630,25 @@ def project_notes(project_id):
         return None
 
     _migration_fallback = {"title": "Migrating to Recharge", "url": "https://support.getrecharge.com/hc/en-us/articles/360008830853-Migrating-to-Recharge"}
+    _skip_article_kw = ("congratulations",)
     merchant_tasks_with_articles = []
     for t in merchant_tasks:
-        article = _fetch_support_article(t["title"])
-        if not article and any(kw in t["title"].upper() for kw in ("DMS", "MIGR8")):
-            article = _migration_fallback
+        if any(kw in t["title"].lower() for kw in _skip_article_kw):
+            article = None
+        else:
+            article = _fetch_support_article(t["title"])
+            if not article and any(kw in t["title"].upper() for kw in ("DMS", "MIGR8")):
+                article = _migration_fallback
         merchant_tasks_with_articles.append({"task": t, "article": article})
 
     next_tasks_with_articles = []
     for t in next_tasks:
-        article = _fetch_support_article(t["title"])
-        if not article and any(kw in t["title"].upper() for kw in ("DMS", "MIGR8")):
-            article = _migration_fallback
+        if any(kw in t["title"].lower() for kw in _skip_article_kw):
+            article = None
+        else:
+            article = _fetch_support_article(t["title"])
+            if not article and any(kw in t["title"].upper() for kw in ("DMS", "MIGR8")):
+                article = _migration_fallback
         next_tasks_with_articles.append({"task": t, "article": article})
 
     # Flagged notes for Risk Flag

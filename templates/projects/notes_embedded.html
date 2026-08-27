@@ -136,8 +136,8 @@
       <div id="emailPreview" style="font-size:0.75rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; padding:0.65rem 2rem 0.65rem 0.9rem; white-space:pre-wrap;">Hello,
 
 Here are your next action items:
-{% for item in merchant_tasks_with_articles %}{{ loop.index }}. {{ item.task['title'] }}<span class="support-doc-line">
-   📖 <a href="{{ item.article.url if item.article else '#' }}" target="_blank" style="color:var(--rc-cobalt); font-size:0.72rem;">{{ item.article.title if item.article else '(no article found)' }}</a></span>
+{% for item in merchant_tasks_with_articles %}{{ loop.index }}. {{ item.task['title'] }}{% if item.article %}<span class="support-doc-line">
+   📖 <a href="{{ item.article.url }}" target="_blank" style="color:var(--rc-cobalt); font-size:0.72rem;">{{ item.article.title }}</a></span>{% endif %}
 {% endfor %}
 In order to stay on schedule, please aim to have these tasks completed by {{ target_fmt }}.
 
@@ -155,9 +155,9 @@ Please let me know if you have any questions!
       <div class="fw-semibold mb-2" style="font-size:0.78rem; letter-spacing:0.06em; text-transform:uppercase; color:#9ca3af;">⚡ Quick Actions</div>
 
       {% if is_late and overdue_merchant_tasks %}
-      <div class="mb-3 p-2 rounded" style="background:#fff5f5; border:1px solid #fecaca;">
-        <div class="fw-semibold mb-1" style="font-size:0.74rem; color:#dc2626;"><i class="bi bi-flag-fill me-1"></i>Risk Flag</div>
-        <div style="font-size:0.72rem; color:#7f1d1d; line-height:1.5;">
+      <div class="mb-3 p-2 rounded" style="background:#fce7f3; border:1px solid #f472b6;">
+        <div class="fw-semibold mb-1" style="font-size:0.74rem; color:#be185d;"><i class="bi bi-flag-fill me-1"></i>Risk Object Summary Generator</div>
+        <div style="font-size:0.72rem; color:#be185d; line-height:1.5;">
           This project is past its go-live date with <strong>{{ overdue_merchant_tasks|length }} overdue merchant task{{ 's' if overdue_merchant_tasks|length != 1 else '' }}</strong>.
           Likely stalled on: <em>{{ overdue_merchant_tasks[0]['title'] }}</em>{% if overdue_merchant_tasks|length > 1 %} (+{{ overdue_merchant_tasks|length - 1 }} more){% endif %}.
           Consider sending an overdue nudge to unblock progress.
@@ -220,11 +220,11 @@ Please let me know if you have any questions!
 
       <div class="mb-2">
         <button onclick="generateAction('riskFlag', this)" style="width:100%; text-align:left; background:#fce7f3; border:1px solid #f472b6; border-radius:8px; padding:7px 11px; font-size:0.78rem; font-weight:500; color:#be185d; cursor:pointer; display:flex; align-items:center; gap:6px;">
-          <i class="bi bi-flag-fill" style="font-size:0.82rem;"></i> Risk Flag
+          <i class="bi bi-flag-fill" style="font-size:0.82rem;"></i> Risk Object Summary Generator
         </button>
         <div id="riskFlagBox" style="display:none; margin-top:6px;">
           <div style="position:relative;">
-            <div id="riskFlagText" style="font-size:0.72rem; background:#fff5f5; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #fecaca; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap; padding-right:2rem;"></div>
+            <div id="riskFlagText" style="font-size:0.72rem; background:#fce7f3; color:#be185d; font-family:monospace; line-height:1.7; border:1px solid #f472b6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap; padding-right:2rem;"></div>
             <button onclick="copyAction('riskFlagText', this)" style="position:absolute; top:5px; right:6px; background:none; border:none; color:#9ca3af; cursor:pointer; font-size:0.85rem; padding:0;" title="Copy"><i class="bi bi-clipboard"></i></button>
           </div>
         </div>
@@ -288,6 +288,7 @@ const QA = {
   isLate: {{ 'true' if is_late else 'false' }},
   currentMilestone: {{ (current_milestone_name or '') | tojson }},
   goLiveIso: {{ (project['target_go_live_date'] or '') | tojson }},
+  ssdIso: {{ (project['contract_start_date'] or '') | tojson }},
   lastCompletedGroup: {{ (last_completed_group['name'] if last_completed_group else '') | tojson }},
   nextTasks: [{% for item in next_tasks_with_articles %}{ title: {{ item['task']['title']|tojson }}, owner: {{ item['task']['owner']|tojson }}, group: {{ (item['task']['group_name'] or '')|tojson }}, article: {% if item['article'] %}{ title: {{ item['article']['title']|tojson }}, url: {{ item['article']['url']|tojson }} }{% else %}null{% endif %} }{% if not loop.last %},{% endif %}{% endfor %}],
   overdueTasks: [{% for t in overdue_merchant_tasks %}{ title: {{ t['title']|tojson }}, due: {{ (t['due_date'] or '')|tojson }} }{% if not loop.last %},{% endif %}{% endfor %}],
@@ -351,7 +352,7 @@ function generateAction(type) {
   if (type === 'overdueNudge') {
     boxId = 'overdueNudgeBox'; textId = 'overdueNudgeText';
     const taskList = d.overdueTasks.map((t, i) => `${i+1}. ${t.title} (was due ${_fmtIso(t.due)})`).join('\n');
-    text = `Hello,\n\nI wanted to follow up on a few items that are now past due on your end. In order to keep your go-live on track for ${gl}, we'll need these completed as soon as possible:\n\n${taskList}\n\nPlease reach out if you have any questions or if there's anything blocking your progress — we want to make sure we can still hit your target date!\n\n${d.ieName}`;
+    text = `Hello,\n\nJust wanted to flag that the items below are now past due — wanted to make sure they didn't fall through the cracks! Staying on top of these will help us keep your go-live on track for ${gl}.\n\n${taskList}\n\nIf anything is blocking you or you need help, just let me know — happy to jump in and work through it together.\n\n${d.ieName}`;
   }
 
   // Toggle off if already open
@@ -363,7 +364,10 @@ function generateAction(type) {
 
   if (type === 'riskFlag') {
     const risks = [];
-    if (d.isLate) risks.push(`⚠️ Project is past its go-live date of ${gl} and is not yet complete (${d.pct}%).`);
+    if (d.isLate) {
+      const ssdStr = d.ssdIso ? ` Contract start date (SSD) was ${_fmtIso(d.ssdIso)}.` : '';
+      risks.push(`⚠️ Project is past its go-live date of ${gl} and is not yet complete (${d.pct}%).${ssdStr}`);
+    }
     if (d.overdueTasks.length) {
       const list = d.overdueTasks.map(t => `   • ${t.title} (was due ${_fmtIso(t.due)})`).join('\n');
       risks.push(`⚠️ ${d.overdueTasks.length} overdue merchant task${d.overdueTasks.length !== 1 ? 's' : ''} pending action:\n${list}`);
@@ -371,15 +375,13 @@ function generateAction(type) {
     if (d.lastNoteDate) {
       const daysSince = Math.floor((Date.now() - new Date(d.lastNoteDate).getTime()) / 86400000);
       if (daysSince >= 14) risks.push(`⚠️ No project updates in ${daysSince} days — last note was on ${_fmtIso(d.lastNoteDate)}.`);
-    } else {
-      risks.push(`⚠️ No notes have been added to this project.`);
     }
     if (d.flaggedNotes.length) {
       const excerpts = d.flaggedNotes.slice(0, 3).map(n => `   "${n.text}" (${_fmtIso(n.date)})`).join('\n');
       risks.push(`⚠️ Potential blockers noted by IE:\n${excerpts}`);
     }
     if (!risks.length) risks.push(`✅ No immediate risks detected for ${d.merchantName}.`);
-    text = `Risk Flag — ${d.merchantName}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` + risks.join('\n\n');
+    text = `Risk Object Summary — ${d.merchantName}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` + risks.join('\n\n');
     document.getElementById('riskFlagText').textContent = text;
     document.getElementById('riskFlagBox').style.display = '';
     return;
