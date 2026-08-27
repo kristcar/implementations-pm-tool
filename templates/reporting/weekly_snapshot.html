@@ -40,7 +40,14 @@
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">IE</th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Template</th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Current Milestone</th>
-          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Projected End</th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">
+            Go-Live Target
+            <i class="bi bi-info-circle ms-1" style="font-size:0.7rem; cursor:default;" data-bs-toggle="tooltip" title="The go-live date manually set on the project. This is the goal the team is working toward."></i>
+          </th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">
+            Projected End
+            <i class="bi bi-info-circle ms-1" style="font-size:0.7rem; cursor:default;" data-bs-toggle="tooltip" title="The due date of the latest task on the project. May differ from Go-Live Target if tasks have been manually adjusted."></i>
+          </th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; width:160px;">% Complete</th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Status</th>
         </tr>
@@ -54,6 +61,7 @@
             <span class="small">{{ tpl_labels.get(p.template_type, p.template_type or '—') }}</span>
           </td>
           <td class="small" style="max-width:220px;">{{ p.milestone }}</td>
+          <td class="small text-muted">{{ p.target_go_live_date or '—' }}</td>
           <td class="small text-muted">{{ p.projected_end or '—' }}</td>
           <td>
             <div class="d-flex align-items-center gap-2">
@@ -73,11 +81,19 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" class="text-center text-muted py-5">No active projects.</td>
+          <td colspan="8" class="text-center text-muted py-5">No active projects.</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+});
+</script>
 {% endblock %}
