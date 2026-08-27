@@ -534,9 +534,12 @@ def project_notes(project_id):
             pass
         return None
 
+    _migration_fallback = {"title": "Migrating to Recharge", "url": "https://support.getrecharge.com/hc/en-us/articles/360008830853-Migrating-to-Recharge"}
     merchant_tasks_with_articles = []
     for t in merchant_tasks:
         article = _fetch_support_article(t["title"])
+        if not article and any(kw in t["title"].upper() for kw in ("DMS", "MIGR8")):
+            article = _migration_fallback
         merchant_tasks_with_articles.append({"task": t, "article": article})
 
     embedded = request.args.get("embedded") == "1"

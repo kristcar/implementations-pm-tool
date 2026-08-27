@@ -118,7 +118,7 @@
         {% set target_fmt = '[target date]' %}
       {% endif %}
       <hr style="opacity:0.15;">
-      <div class="text-muted small fw-semibold mb-2" style="letter-spacing:0.04em; font-size:0.7rem;">MERCHANT EMAIL BLOCK</div>
+      <div class="fw-semibold mb-3" style="font-size:0.78rem; letter-spacing:0.06em; text-transform:uppercase; color:#9ca3af;">✨ Merchant Email Generator</div>
 
       <div class="mb-2">
         <div class="form-check form-switch mb-1">
@@ -137,7 +137,7 @@ Here are your next action items:
 {% for item in merchant_tasks_with_articles %}{{ loop.index }}. {{ item.task['title'] }}<span class="support-doc-line">
    📖 <a href="{{ item.article.url if item.article else '#' }}" target="_blank" style="color:var(--rc-cobalt); font-size:0.72rem;">{{ item.article.title if item.article else '(no article found)' }}</a></span>
 {% endfor %}
-Please try to complete these by {{ target_fmt }}.
+In order to stay on schedule, please aim to have these tasks completed by {{ target_fmt }}.
 
 Please let me know if you have any questions!
 
@@ -187,7 +187,7 @@ function buildEmailHtml(withDocs) {
     if (withDocs && t.article) items += `<br><span style="font-size:0.9em;">📖 <a href="${t.article.url}" style="color:#1B1464;">${t.article.title}</a></span>`;
     items += `</li>`;
   });
-  return `<p>Hello,</p><p>Here are your next action items:</p><ol>${items}</ol><p>Please try to complete these by ${TARGET_DATE}.</p><p>Please let me know if you have any questions!</p><p>${IE_NAME}</p>`;
+  return `<p>Hello,</p><p>Here are your next action items:</p><ol>${items}</ol><p>In order to stay on schedule, please aim to have these tasks completed by ${TARGET_DATE}.</p><p>Please let me know if you have any questions!</p><p>${IE_NAME}</p>`;
 }
 
 function buildEmailPlain(withDocs) {
@@ -196,8 +196,9 @@ function buildEmailPlain(withDocs) {
     items += `${i + 1}. ${t.title}\n`;
     if (withDocs && t.article) items += `   📖 ${t.article.title}\n   ${t.article.url}\n`;
   });
-  return `Hello,\n\nHere are your next action items:\n\n${items}\nPlease try to complete these by ${TARGET_DATE}.\n\nPlease let me know if you have any questions!\n\n${IE_NAME}`;
+  return `Hello,\n\nHere are your next action items:\n\n${items}\nIn order to stay on schedule, please aim to have these tasks completed by ${TARGET_DATE}.\n\nPlease let me know if you have any questions!\n\n${IE_NAME}`;
 }
+
 
 async function copyEmailBlock() {
   const withDocs = document.getElementById('supportDocsToggle')?.checked;
