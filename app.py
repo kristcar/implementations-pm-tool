@@ -478,7 +478,57 @@ def project_notes(project_id):
            LIMIT 2""",
         (project_id,)
     ).fetchall()
+
+    # Quick Actions data
+    from datetime import date as _dt_date
+    _today_iso = _dt_date.today().isoformat()
+
+    overdue_merchant_tasks = db.execute(
+        """SELECT t.title, t.owner, t.due_date, tg.name as group_name
+           FROM tasks t
+           LEFT JOIN task_groups tg ON t.task_group_id = tg.id
+           WHERE t.project_id=? AND t.status != 'complete'
+             AND t.owner IN ('merchant','shared') AND t.due_date < ?
+           ORDER BY t.due_date ASC""",
+        (project_id, _today_iso)
+    ).fetchall()
+
+    last_completed_group = db.execute(
+        """SELECT tg.id, tg.name,
+                  COUNT(t.id) as total,
+                  SUM(CASE WHEN t.status='complete' THEN 1 ELSE 0 END) as done
+           FROM task_groups tg
+           JOIN tasks t ON t.task_group_id = tg.id
+           WHERE tg.project_id=?
+           GROUP BY tg.id
+           HAVING total > 0 AND done = total
+           ORDER BY tg.sort_order DESC
+           LIMIT 1""",
+        (project_id,)
+    ).fetchone()
+
+    current_milestone_row = db.execute(
+        """SELECT tg.name FROM task_groups tg
+           JOIN tasks t ON t.task_group_id = tg.id
+           WHERE tg.project_id=? AND t.status != 'complete'
+           GROUP BY tg.id
+           ORDER BY tg.sort_order ASC
+           LIMIT 1""",
+        (project_id,)
+    ).fetchone()
+    current_milestone_name = current_milestone_row["name"] if current_milestone_row else None
+
     db.close()
+
+    _progress = models.project_progress(project_id)
+    project_pct = _progress["pct"]
+    _go_live = project["target_go_live_date"]
+    is_late = False
+    if _go_live:
+        try:
+            is_late = _dt_date.today() > _dt_date.fromisoformat(_go_live[:10]) and project_pct < 100
+        except Exception:
+            pass
 
     # Fetch support article for each merchant task
     import urllib.request, urllib.parse, json as _json, re as _re
@@ -542,13 +592,26 @@ def project_notes(project_id):
             article = _migration_fallback
         merchant_tasks_with_articles.append({"task": t, "article": article})
 
+    next_tasks_with_articles = []
+    for t in next_tasks:
+        article = _fetch_support_article(t["title"])
+        if not article and any(kw in t["title"].upper() for kw in ("DMS", "MIGR8")):
+            article = _migration_fallback
+        next_tasks_with_articles.append({"task": t, "article": article})
+
     embedded = request.args.get("embedded") == "1"
     panel = request.args.get("panel", "notes")
     template = "projects/notes_embedded.html" if embedded else "projects/notes.html"
     return render_template(template, project=project, notes=notes,
                            next_tasks=next_tasks, merchant_tasks=merchant_tasks,
                            merchant_tasks_with_articles=merchant_tasks_with_articles,
-                           panel=panel)
+                           next_tasks_with_articles=next_tasks_with_articles,
+                           panel=panel,
+                           overdue_merchant_tasks=overdue_merchant_tasks,
+                           last_completed_group=last_completed_group,
+                           current_milestone_name=current_milestone_name,
+                           project_pct=project_pct,
+                           is_late=is_late)
 
 
 @app.route("/projects/<int:project_id>/notes/add", methods=["POST"])

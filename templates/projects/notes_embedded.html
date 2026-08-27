@@ -150,6 +150,67 @@ Please let me know if you have any questions!
       <hr style="opacity:0.15;">
       <div class="text-muted small text-center py-2">No pending merchant tasks.</div>
       {% endif %}
+
+      <!-- Quick Actions -->
+      <hr style="opacity:0.15;">
+      <div class="fw-semibold mb-2" style="font-size:0.78rem; letter-spacing:0.06em; text-transform:uppercase; color:#9ca3af;">⚡ Quick Actions</div>
+
+      {% if is_late and overdue_merchant_tasks %}
+      <div class="mb-3 p-2 rounded" style="background:#fff5f5; border:1px solid #fecaca;">
+        <div class="fw-semibold mb-1" style="font-size:0.74rem; color:#dc2626;"><i class="bi bi-flag-fill me-1"></i>Risk Flag</div>
+        <div style="font-size:0.72rem; color:#7f1d1d; line-height:1.5;">
+          This project is past its go-live date with <strong>{{ overdue_merchant_tasks|length }} overdue merchant task{{ 's' if overdue_merchant_tasks|length != 1 else '' }}</strong>.
+          Likely stalled on: <em>{{ overdue_merchant_tasks[0]['title'] }}</em>{% if overdue_merchant_tasks|length > 1 %} (+{{ overdue_merchant_tasks|length - 1 }} more){% endif %}.
+          Consider sending an overdue nudge to unblock progress.
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="mb-2">
+        <button class="btn btn-sm btn-outline-secondary w-100 mb-1" style="font-size:0.74rem;" onclick="generateAction('statusUpdate', this)">
+          <i class="bi bi-file-text me-1"></i>Generate Status Update
+        </button>
+        <div id="statusUpdateBox" style="display:none;">
+          <div id="statusUpdateText" class="mb-1" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap;"></div>
+          <button onclick="copyAction('statusUpdateText', this)" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.72rem;"><i class="bi bi-clipboard me-1"></i>Copy</button>
+        </div>
+      </div>
+
+      <div class="mb-2">
+        <button class="btn btn-sm btn-outline-secondary w-100 mb-1" style="font-size:0.74rem;" onclick="generateAction('handoff', this)">
+          <i class="bi bi-person-lines-fill me-1"></i>Generate Handoff Notes
+        </button>
+        <div id="handoffBox" style="display:none;">
+          <div id="handoffText" class="mb-1" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap;"></div>
+          <button onclick="copyAction('handoffText', this)" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.72rem;"><i class="bi bi-clipboard me-1"></i>Copy</button>
+        </div>
+      </div>
+
+      {% if last_completed_group %}
+      <div class="mb-2">
+        <button class="btn btn-sm w-100 mb-1" style="font-size:0.74rem; background:#f0fdf4; border:1px solid #bbf7d0; color:#166534;" onclick="generateAction('milestoneEmail', this)">
+          <i class="bi bi-envelope-check me-1"></i>Generate Milestone Email
+          <span class="badge ms-1" style="background:#bbf7d0; color:#166534; font-size:0.65rem;">{{ last_completed_group['name'] }}</span>
+        </button>
+        <div id="milestoneEmailBox" style="display:none;">
+          <div id="milestoneEmailText" class="mb-1" style="font-size:0.75rem; background:#f8f9ff; color:#374151; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; padding:0.65rem 0.9rem;"></div>
+          <button onclick="copyMilestoneEmail(this)" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.72rem;"><i class="bi bi-clipboard me-1"></i>Copy</button>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if overdue_merchant_tasks %}
+      <div class="mb-2">
+        <button class="btn btn-sm w-100 mb-1" style="font-size:0.74rem; background:#fffbeb; border:1px solid #fcd34d; color:#92400e;" onclick="generateAction('overdueNudge', this)">
+          <i class="bi bi-exclamation-triangle me-1"></i>Overdue Merchant Nudge
+        </button>
+        <div id="overdueNudgeBox" style="display:none;">
+          <div id="overdueNudgeText" class="mb-1" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap;"></div>
+          <button onclick="copyAction('overdueNudgeText', this)" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.72rem;"><i class="bi bi-clipboard me-1"></i>Copy</button>
+        </div>
+      </div>
+      {% endif %}
+
     </div>
 
   </div>
@@ -199,6 +260,118 @@ function buildEmailPlain(withDocs) {
   return `Hello,\n\nHere are your next action items:\n\n${items}\nIn order to stay on schedule, please aim to have these tasks completed by ${TARGET_DATE}.\n\nPlease let me know if you have any questions!\n\n${IE_NAME}`;
 }
 
+
+// Quick Actions
+const QA = {
+  merchantName: {{ (project['merchant_name'] or project['name']) | tojson }},
+  ieName: {{ session.current_user | tojson }},
+  pct: {{ project_pct }},
+  isLate: {{ 'true' if is_late else 'false' }},
+  currentMilestone: {{ (current_milestone_name or '') | tojson }},
+  goLiveIso: {{ (project['target_go_live_date'] or '') | tojson }},
+  lastCompletedGroup: {{ (last_completed_group['name'] if last_completed_group else '') | tojson }},
+  nextTasks: [{% for item in next_tasks_with_articles %}{ title: {{ item['task']['title']|tojson }}, owner: {{ item['task']['owner']|tojson }}, group: {{ (item['task']['group_name'] or '')|tojson }}, article: {% if item['article'] %}{ title: {{ item['article']['title']|tojson }}, url: {{ item['article']['url']|tojson }} }{% else %}null{% endif %} }{% if not loop.last %},{% endif %}{% endfor %}],
+  overdueTasks: [{% for t in overdue_merchant_tasks %}{ title: {{ t['title']|tojson }}, due: {{ (t['due_date'] or '')|tojson }} }{% if not loop.last %},{% endif %}{% endfor %}],
+};
+
+function _fmtIso(iso) {
+  if (!iso) return '[date]';
+  const [y, m, d] = iso.split('-');
+  return `${m}/${d}/${y}`;
+}
+
+function generateAction(type) {
+  const d = QA;
+  const gl = _fmtIso(d.goLiveIso);
+  let text = '';
+  let boxId = '', textId = '';
+
+  if (type === 'statusUpdate') {
+    boxId = 'statusUpdateBox'; textId = 'statusUpdateText';
+    if (d.pct === 100) {
+      text = `${d.merchantName} has completed all tasks and is fully ready for go-live!`;
+    } else {
+      const status = d.isLate ? 'currently behind schedule' : 'on track';
+      const ms = d.currentMilestone ? ` Currently working through: ${d.currentMilestone}.` : '';
+      text = `${d.merchantName} is ${status} at ${d.pct}% complete.${ms} Target go-live is ${gl}.`;
+    }
+  }
+
+  if (type === 'handoff') {
+    boxId = 'handoffBox'; textId = 'handoffText';
+    const nextList = d.nextTasks.length
+      ? d.nextTasks.map((t, i) => `  ${i+1}. [${t.owner.toUpperCase()}] ${t.title}${t.group ? ` (${t.group})` : ''}`).join('\n')
+      : '  (no pending tasks)';
+    const overdueSection = d.overdueTasks.length
+      ? '\n\nOverdue merchant tasks:\n' + d.overdueTasks.map(t => `  • ${t.title} (was due ${_fmtIso(t.due)})`).join('\n')
+      : '';
+    text = `Handoff Notes — ${d.merchantName}\n` +
+           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+           `IE Owner: ${d.ieName}\n` +
+           `Progress: ${d.pct}% complete\n` +
+           `Current Milestone: ${d.currentMilestone || 'N/A'}\n` +
+           `Go-Live Target: ${gl}\n` +
+           `Status: ${d.isLate ? '⚠️ Behind schedule' : '✅ On track'}\n` +
+           `\nNext up:\n${nextList}` + overdueSection;
+  }
+
+  if (type === 'milestoneEmail') {
+    document.getElementById('milestoneEmailBox').style.display = '';
+    document.getElementById('milestoneEmailText').innerHTML = buildMilestoneEmailHtml();
+    return;
+  }
+
+  if (type === 'overdueNudge') {
+    boxId = 'overdueNudgeBox'; textId = 'overdueNudgeText';
+    const taskList = d.overdueTasks.map((t, i) => `${i+1}. ${t.title} (was due ${_fmtIso(t.due)})`).join('\n');
+    text = `Hello,\n\nI wanted to follow up on a few items that are now past due on your end. In order to keep your go-live on track for ${gl}, we'll need these completed as soon as possible:\n\n${taskList}\n\nPlease reach out if you have any questions or if there's anything blocking your progress — we want to make sure we can still hit your target date!\n\n${d.ieName}`;
+  }
+
+  if (boxId) {
+    document.getElementById(textId).textContent = text;
+    document.getElementById(boxId).style.display = '';
+  }
+}
+
+function buildMilestoneEmailHtml() {
+  const d = QA;
+  const gl = _fmtIso(d.goLiveIso);
+  let items = '';
+  d.nextTasks.forEach(t => {
+    items += `<li style="margin-bottom:8px;">${t.title}`;
+    if (t.article) items += `<br><span style="font-size:0.9em;">📖 <a href="${t.article.url}" style="color:#1B1464;">${t.article.title}</a></span>`;
+    items += `</li>`;
+  });
+  const nextSection = d.nextTasks.length ? `<p>Here is what is coming up next:</p><ol>${items}</ol>` : '';
+  return `<p>Hello,</p><p>Great news - we have just completed the ${d.lastCompletedGroup} milestone for your Recharge implementation! 🎉</p><p>We are now ${d.pct}% of the way to your go-live date of ${gl}.</p>${nextSection}<p>Please let me know if you have any questions!</p><p>${d.ieName}</p>`;
+}
+
+async function copyMilestoneEmail(btn) {
+  const plain = document.getElementById('milestoneEmailText').innerText;
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([buildMilestoneEmailHtml()], { type: 'text/html' }),
+        'text/plain': new Blob([plain], { type: 'text/plain' }),
+      })
+    ]);
+  } catch (e) {
+    await navigator.clipboard.writeText(plain);
+  }
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+  btn.classList.replace('btn-outline-secondary', 'btn-success');
+  setTimeout(() => { btn.innerHTML = orig; btn.classList.replace('btn-success', 'btn-outline-secondary'); }, 2000);
+}
+
+async function copyAction(id, btn) {
+  const text = document.getElementById(id).textContent;
+  try { await navigator.clipboard.writeText(text); } catch (e) {}
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+  btn.classList.replace('btn-outline-secondary', 'btn-success');
+  setTimeout(() => { btn.innerHTML = orig; btn.classList.replace('btn-success', 'btn-outline-secondary'); }, 2000);
+}
 
 async function copyEmailBlock() {
   const withDocs = document.getElementById('supportDocsToggle')?.checked;
