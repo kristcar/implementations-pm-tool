@@ -224,17 +224,28 @@
 {% set done = item.done %}
 {% set pct = (done / total * 100)|int if total else 0 %}
 
-<div class="card mb-3 phase-{{ loop.index0 }}">
-  <div class="card-header d-flex align-items-center justify-content-between py-2">
+<div class="card mb-3 phase-{{ loop.index0 }}" {% if pct == 100 %}style="opacity:0.55;"{% endif %}>
+  <div class="card-header d-flex align-items-center justify-content-between py-2" style="border-left: 3px solid {% if pct == 100 %}#9ca3af{% else %}var(--phase-{{ loop.index0 }}-color, #1B1464){% endif %}; {% if pct == 100 %}background:#f9fafb;{% endif %}">
     <div class="d-flex align-items-center gap-2">
-      <span class="fw-semibold">{{ g['name'] }}</span>
-      <span class="badge bg-secondary">{{ done }}/{{ total }}</span>
+      <form method="POST" action="{{ url_for('task_group_complete_all', group_id=g['id']) }}" class="mb-0" title="Mark all tasks in this group done">
+        <input type="checkbox" class="form-check-input mt-0" style="cursor:pointer; width:1rem; height:1rem;"
+               {% if pct == 100 %}checked{% endif %}
+               onchange="if(this.checked && !{{ 'true' if pct == 100 else 'false' }}) this.closest('form').submit(); else this.checked={{ 'true' if pct == 100 else 'false' }};">
+      </form>
+      <span class="fw-bold" style="font-size:0.88rem; letter-spacing:0.03em; color:{% if pct == 100 %}#9ca3af{% else %}#1B1464{% endif %};">{{ g['name'] }}</span>
+      {% if pct == 100 %}
+        <span class="badge rounded-pill" style="background:#dcfce7; color:#15803d; font-weight:600; font-size:0.72rem;">{{ done }}/{{ total }}</span>
+      {% elif done > 0 %}
+        <span class="badge rounded-pill" style="background:#dbeafe; color:#1d4ed8; font-weight:600; font-size:0.72rem;">{{ done }}/{{ total }}</span>
+      {% else %}
+        <span class="badge rounded-pill" style="background:#f3f4f6; color:#6b7280; font-weight:600; font-size:0.72rem;">{{ done }}/{{ total }}</span>
+      {% endif %}
     </div>
     <div class="d-flex align-items-center gap-3">
-      <div class="progress group-progress-bar" style="width:120px; height:6px;">
-        <div class="progress-bar {% if pct==100 %}bg-success{% else %}bg-primary{% endif %}"
+      <div class="progress group-progress-bar" style="width:120px; height:6px; border-radius:4px;">
+        <div class="progress-bar"
              data-group-id="{{ g['id'] }}"
-             style="width:{{ pct }}%"></div>
+             style="width:{{ pct }}%; background:{% if pct==100 %}#16a34a{% elif done > 0 %}#1d4ed8{% else %}#d1d5db{% endif %}; border-radius:4px;"></div>
       </div>
       <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="collapse"
               data-bs-target="#group-{{ g['id'] }}" title="Toggle">
@@ -320,11 +331,12 @@
 
       <!-- Add task inline -->
       <div class="list-group-item bg-light">
-        <button class="btn btn-sm btn-link text-muted p-0 add-task-btn"
+        <button class="btn btn-sm add-task-btn"
+                style="background: linear-gradient(135deg, #1B1464, #3b2db5, #6d28d9); color:#fff; border:none; border-radius:20px; padding:4px 14px; font-size:0.75rem; font-weight:600; letter-spacing:0.03em;"
                 data-group-id="{{ g['id'] }}"
                 data-group-name="{{ g['name'] }}"
                 data-bs-toggle="modal" data-bs-target="#addTaskModal">
-          <i class="bi bi-plus me-1"></i>Add task
+          ✨ Add task
         </button>
       </div>
     </div>
@@ -668,6 +680,21 @@
 
 {% block scripts %}
 <style>
+:root {
+  --phase-0-color: #1B1464;
+  --phase-1-color: #3b82f6;
+  --phase-2-color: #8b5cf6;
+  --phase-3-color: #06b6d4;
+  --phase-4-color: #10b981;
+  --phase-5-color: #f59e0b;
+  --phase-6-color: #ef4444;
+  --phase-7-color: #ec4899;
+  --phase-8-color: #6366f1;
+  --phase-9-color: #14b8a6;
+  --phase-10-color: #a855f7;
+  --phase-11-color: #f97316;
+  --phase-12-color: #84cc16;
+}
 @keyframes aiWave {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-5px); }

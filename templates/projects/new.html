@@ -108,6 +108,14 @@ function updateStartDateLabel() {
   document.getElementById('contract_start_help').textContent = isStoreOpt
     ? 'Project is considered Late if not marked Done within 40 days of this date.'
     : 'Used to calculate task due dates from the template.';
+
+  if (isStoreOpt) {
+    const d = new Date();
+    d.setDate(d.getDate() + 40);
+    document.querySelector('input[name="target_go_live_date"]').value = d.toISOString().slice(0, 10);
+  } else {
+    document.querySelector('input[name="target_go_live_date"]').value = '';
+  }
 }
 
 document.querySelectorAll('input[name="template_type"]').forEach(function(r) {

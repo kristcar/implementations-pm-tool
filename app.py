@@ -98,7 +98,7 @@ def index():
 @app.route("/projects")
 @login_required
 def project_list():
-    status = request.args.get("status", "all")
+    status = request.args.get("status", "active")
     timing = request.args.get("timing", "all")  # all | on_time | late
     from datetime import date
     today = date.today()
@@ -741,6 +741,24 @@ def tasks_complete_all(project_id):
     models.complete_all_tasks(project_id)
     flash("All tasks marked as complete.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
+
+@app.route("/task-groups/<int:group_id>/complete-all", methods=["POST"])
+@login_required
+def task_group_complete_all(group_id):
+    db = database.get_db()
+    project_row = db.execute("SELECT project_id FROM task_groups WHERE id=?", (group_id,)).fetchone()
+    if not project_row:
+        db.close()
+        return ("Not found", 404)
+    from datetime import datetime
+    db.execute(
+        "UPDATE tasks SET status='complete', completed_at=? WHERE task_group_id=? AND status != 'complete'",
+        (datetime.utcnow().isoformat(), group_id)
+    )
+    db.commit()
+    db.close()
+    return redirect(url_for("project_detail", project_id=project_row["project_id"]))
+
 
 @app.route("/projects/<int:project_id>/complete-all-and-close", methods=["POST"])
 @login_required
