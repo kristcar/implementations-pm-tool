@@ -21,7 +21,7 @@
 <div class="drawer-body">
   <div class="drawer-header">
     <div class="fw-semibold" style="font-size:0.88rem; color:#1B1464;">
-      {% if panel == 'helper' %}<i class="bi bi-stars me-2" style="color:#8b5cf6;"></i>AI Assistant{% else %}<i class="bi bi-chat-left-text me-2"></i>Notes{% endif %} — {{ project['name'] }}
+      {% if panel == 'helper' %}<i class="bi bi-stars me-2" style="color:#8b5cf6;"></i>Runway AI Assist{% else %}<i class="bi bi-chat-left-text me-2"></i>Notes{% endif %} — {{ project['name'] }}
     </div>
     <button onclick="window.parent.closeNotesDrawer()" class="btn btn-sm btn-outline-secondary" style="font-size:0.78rem;">
       <i class="bi bi-x-lg"></i>
@@ -131,7 +131,9 @@
         </div>
       </div>
 
-      <div id="emailPreview" style="font-size:0.75rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; padding:0.65rem 0.9rem; white-space:pre-wrap; margin-bottom:8px;">Hello,
+      <div style="position:relative; margin-bottom:8px;">
+        <button onclick="copyEmailBlock()" style="position:absolute; top:5px; right:6px; background:none; border:none; color:#9ca3af; cursor:pointer; font-size:0.85rem; padding:0; z-index:1;" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+      <div id="emailPreview" style="font-size:0.75rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; padding:0.65rem 2rem 0.65rem 0.9rem; white-space:pre-wrap;">Hello,
 
 Here are your next action items:
 {% for item in merchant_tasks_with_articles %}{{ loop.index }}. {{ item.task['title'] }}<span class="support-doc-line">
@@ -142,10 +144,7 @@ In order to stay on schedule, please aim to have these tasks completed by {{ tar
 Please let me know if you have any questions!
 
 {{ session.current_user }}</div>
-
-      <button onclick="copyEmailBlock()" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.75rem;">
-        <i class="bi bi-clipboard me-1"></i>Copy to Clipboard
-      </button>
+      </div>
       {% else %}
       <hr style="opacity:0.15;">
       <div class="text-muted small text-center py-2">No pending merchant tasks.</div>
@@ -167,49 +166,69 @@ Please let me know if you have any questions!
       {% endif %}
 
       <div class="mb-2">
-        <button class="btn btn-sm btn-outline-secondary w-100 mb-1" style="font-size:0.74rem;" onclick="generateAction('statusUpdate', this)">
-          <i class="bi bi-file-text me-1"></i>Generate Status Update
+        <button onclick="generateAction('statusUpdate', this)" style="width:100%; text-align:left; background:#f5f6ff; border:1px solid #e0e7ff; border-radius:8px; padding:7px 11px; font-size:0.78rem; font-weight:500; color:#3730a3; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <i class="bi bi-file-text" style="font-size:0.82rem;"></i> Generate Status Update
         </button>
-        <div id="statusUpdateBox" style="display:none;">
-          <div id="statusUpdateText" class="mb-1" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap;"></div>
-          <button onclick="copyAction('statusUpdateText', this)" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.72rem;"><i class="bi bi-clipboard me-1"></i>Copy</button>
+        <div id="statusUpdateBox" style="display:none; margin-top:6px;">
+          <div style="position:relative;">
+            <div id="statusUpdateText" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem 0.55rem 0.8rem; white-space:pre-wrap; padding-right:2rem;"></div>
+            <button onclick="copyAction('statusUpdateText', this)" style="position:absolute; top:5px; right:6px; background:none; border:none; color:#9ca3af; cursor:pointer; font-size:0.85rem; padding:0;" title="Copy"><i class="bi bi-clipboard"></i></button>
+          </div>
         </div>
       </div>
 
       <div class="mb-2">
-        <button class="btn btn-sm btn-outline-secondary w-100 mb-1" style="font-size:0.74rem;" onclick="generateAction('handoff', this)">
-          <i class="bi bi-person-lines-fill me-1"></i>Generate Handoff Notes
+        <button onclick="generateAction('handoff', this)" style="width:100%; text-align:left; background:#f5f6ff; border:1px solid #e0e7ff; border-radius:8px; padding:7px 11px; font-size:0.78rem; font-weight:500; color:#3730a3; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <i class="bi bi-person-lines-fill" style="font-size:0.82rem;"></i> Generate Handoff Notes
         </button>
-        <div id="handoffBox" style="display:none;">
-          <div id="handoffText" class="mb-1" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap;"></div>
-          <button onclick="copyAction('handoffText', this)" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.72rem;"><i class="bi bi-clipboard me-1"></i>Copy</button>
+        <div id="handoffBox" style="display:none; margin-top:6px;">
+          <div style="position:relative;">
+            <div id="handoffText" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap; padding-right:2rem;"></div>
+            <button onclick="copyAction('handoffText', this)" style="position:absolute; top:5px; right:6px; background:none; border:none; color:#9ca3af; cursor:pointer; font-size:0.85rem; padding:0;" title="Copy"><i class="bi bi-clipboard"></i></button>
+          </div>
         </div>
       </div>
 
       {% if last_completed_group %}
       <div class="mb-2">
-        <button class="btn btn-sm w-100 mb-1" style="font-size:0.74rem; background:#f0fdf4; border:1px solid #bbf7d0; color:#166534;" onclick="generateAction('milestoneEmail', this)">
-          <i class="bi bi-envelope-check me-1"></i>Generate Milestone Email
-          <span class="badge ms-1" style="background:#bbf7d0; color:#166534; font-size:0.65rem;">{{ last_completed_group['name'] }}</span>
+        <button onclick="generateAction('milestoneEmail', this)" style="width:100%; text-align:left; background:#f5f6ff; border:1px solid #e0e7ff; border-radius:8px; padding:7px 11px; font-size:0.78rem; font-weight:500; color:#3730a3; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <i class="bi bi-envelope-check" style="font-size:0.82rem;"></i> Generate Milestone Email
+          <span style="margin-left:auto; background:#e0e7ff; color:#3730a3; font-size:0.65rem; padding:1px 6px; border-radius:4px; font-weight:600;">{{ last_completed_group['name'] }}</span>
         </button>
-        <div id="milestoneEmailBox" style="display:none;">
-          <div id="milestoneEmailText" class="mb-1" style="font-size:0.75rem; background:#f8f9ff; color:#374151; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; padding:0.65rem 0.9rem;"></div>
-          <button onclick="copyMilestoneEmail(this)" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.72rem;"><i class="bi bi-clipboard me-1"></i>Copy</button>
+        <div id="milestoneEmailBox" style="display:none; margin-top:6px;">
+          <div style="position:relative;">
+            <div id="milestoneEmailText" style="font-size:0.75rem; background:#f8f9ff; color:#374151; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; padding:0.65rem 0.9rem; padding-right:2rem;"></div>
+            <button onclick="copyMilestoneEmail(this)" style="position:absolute; top:5px; right:6px; background:none; border:none; color:#9ca3af; cursor:pointer; font-size:0.85rem; padding:0;" title="Copy"><i class="bi bi-clipboard"></i></button>
+          </div>
         </div>
       </div>
       {% endif %}
 
       {% if overdue_merchant_tasks %}
       <div class="mb-2">
-        <button class="btn btn-sm w-100 mb-1" style="font-size:0.74rem; background:#fffbeb; border:1px solid #fcd34d; color:#92400e;" onclick="generateAction('overdueNudge', this)">
-          <i class="bi bi-exclamation-triangle me-1"></i>Overdue Merchant Nudge
+        <button onclick="generateAction('overdueNudge', this)" style="width:100%; text-align:left; background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:7px 11px; font-size:0.78rem; font-weight:500; color:#92400e; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <i class="bi bi-exclamation-triangle" style="font-size:0.82rem;"></i> Overdue Merchant Nudge
         </button>
-        <div id="overdueNudgeBox" style="display:none;">
-          <div id="overdueNudgeText" class="mb-1" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap;"></div>
-          <button onclick="copyAction('overdueNudgeText', this)" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.72rem;"><i class="bi bi-clipboard me-1"></i>Copy</button>
+        <div id="overdueNudgeBox" style="display:none; margin-top:6px;">
+          <div style="position:relative;">
+            <div id="overdueNudgeText" style="font-size:0.72rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #dee2e6; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap; padding-right:2rem;"></div>
+            <button onclick="copyAction('overdueNudgeText', this)" style="position:absolute; top:5px; right:6px; background:none; border:none; color:#9ca3af; cursor:pointer; font-size:0.85rem; padding:0;" title="Copy"><i class="bi bi-clipboard"></i></button>
+          </div>
         </div>
       </div>
       {% endif %}
+
+      <div class="mb-2">
+        <button onclick="generateAction('riskFlag', this)" style="width:100%; text-align:left; background:#fce7f3; border:1px solid #f472b6; border-radius:8px; padding:7px 11px; font-size:0.78rem; font-weight:500; color:#be185d; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <i class="bi bi-flag-fill" style="font-size:0.82rem;"></i> Risk Flag
+        </button>
+        <div id="riskFlagBox" style="display:none; margin-top:6px;">
+          <div style="position:relative;">
+            <div id="riskFlagText" style="font-size:0.72rem; background:#fff5f5; color:#374151; font-family:monospace; line-height:1.7; border:1px solid #fecaca; border-radius:6px; padding:0.55rem 0.8rem; white-space:pre-wrap; padding-right:2rem;"></div>
+            <button onclick="copyAction('riskFlagText', this)" style="position:absolute; top:5px; right:6px; background:none; border:none; color:#9ca3af; cursor:pointer; font-size:0.85rem; padding:0;" title="Copy"><i class="bi bi-clipboard"></i></button>
+          </div>
+        </div>
+      </div>
 
     </div>
 
@@ -272,6 +291,8 @@ const QA = {
   lastCompletedGroup: {{ (last_completed_group['name'] if last_completed_group else '') | tojson }},
   nextTasks: [{% for item in next_tasks_with_articles %}{ title: {{ item['task']['title']|tojson }}, owner: {{ item['task']['owner']|tojson }}, group: {{ (item['task']['group_name'] or '')|tojson }}, article: {% if item['article'] %}{ title: {{ item['article']['title']|tojson }}, url: {{ item['article']['url']|tojson }} }{% else %}null{% endif %} }{% if not loop.last %},{% endif %}{% endfor %}],
   overdueTasks: [{% for t in overdue_merchant_tasks %}{ title: {{ t['title']|tojson }}, due: {{ (t['due_date'] or '')|tojson }} }{% if not loop.last %},{% endif %}{% endfor %}],
+  flaggedNotes: [{% for n in flagged_notes %}{ text: {{ n['text']|tojson }}, author: {{ n['author']|tojson }}, date: {{ n['date']|tojson }} }{% if not loop.last %},{% endif %}{% endfor %}],
+  lastNoteDate: {{ (last_note_date_str or '')|tojson }},
 };
 
 function _fmtIso(iso) {
@@ -293,7 +314,8 @@ function generateAction(type) {
     } else {
       const status = d.isLate ? 'currently behind schedule' : 'on track';
       const ms = d.currentMilestone ? ` Currently working through: ${d.currentMilestone}.` : '';
-      text = `${d.merchantName} is ${status} at ${d.pct}% complete.${ms} Target go-live is ${gl}.`;
+      const nextTask = d.nextTasks.length ? ` Current open task: ${d.nextTasks[0].title}.` : '';
+      text = `${d.merchantName} is ${status} at ${d.pct}% complete.${ms}${nextTask} Target go-live is ${gl}.`;
     }
   }
 
@@ -305,6 +327,12 @@ function generateAction(type) {
     const overdueSection = d.overdueTasks.length
       ? '\n\nOverdue merchant tasks:\n' + d.overdueTasks.map(t => `  • ${t.title} (was due ${_fmtIso(t.due)})`).join('\n')
       : '';
+    const status = d.isLate ? 'currently behind schedule' : 'on track';
+    const ms = d.currentMilestone ? ` Currently working through: ${d.currentMilestone}.` : '';
+    const nextTask = d.nextTasks.length ? ` Current open task: ${d.nextTasks[0].title}.` : '';
+    const statusBlurb = d.pct === 100
+      ? `${d.merchantName} has completed all tasks and is fully ready for go-live!`
+      : `${d.merchantName} is ${status} at ${d.pct}% complete.${ms}${nextTask} Target go-live is ${gl}.`;
     text = `Handoff Notes — ${d.merchantName}\n` +
            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
            `IE Owner: ${d.ieName}\n` +
@@ -312,13 +340,12 @@ function generateAction(type) {
            `Current Milestone: ${d.currentMilestone || 'N/A'}\n` +
            `Go-Live Target: ${gl}\n` +
            `Status: ${d.isLate ? '⚠️ Behind schedule' : '✅ On track'}\n` +
+           `\nSummary: ${statusBlurb}\n` +
            `\nNext up:\n${nextList}` + overdueSection;
   }
 
   if (type === 'milestoneEmail') {
-    document.getElementById('milestoneEmailBox').style.display = '';
-    document.getElementById('milestoneEmailText').innerHTML = buildMilestoneEmailHtml();
-    return;
+    boxId = 'milestoneEmailBox'; textId = 'milestoneEmailText';
   }
 
   if (type === 'overdueNudge') {
@@ -327,8 +354,41 @@ function generateAction(type) {
     text = `Hello,\n\nI wanted to follow up on a few items that are now past due on your end. In order to keep your go-live on track for ${gl}, we'll need these completed as soon as possible:\n\n${taskList}\n\nPlease reach out if you have any questions or if there's anything blocking your progress — we want to make sure we can still hit your target date!\n\n${d.ieName}`;
   }
 
+  // Toggle off if already open
+  const existingBoxes = { statusUpdate: 'statusUpdateBox', handoff: 'handoffBox', milestoneEmail: 'milestoneEmailBox', overdueNudge: 'overdueNudgeBox', riskFlag: 'riskFlagBox' };
+  if (existingBoxes[type]) {
+    const box = document.getElementById(existingBoxes[type]);
+    if (box && box.style.display !== 'none') { box.style.display = 'none'; return; }
+  }
+
+  if (type === 'riskFlag') {
+    const risks = [];
+    if (d.isLate) risks.push(`⚠️ Project is past its go-live date of ${gl} and is not yet complete (${d.pct}%).`);
+    if (d.overdueTasks.length) {
+      const list = d.overdueTasks.map(t => `   • ${t.title} (was due ${_fmtIso(t.due)})`).join('\n');
+      risks.push(`⚠️ ${d.overdueTasks.length} overdue merchant task${d.overdueTasks.length !== 1 ? 's' : ''} pending action:\n${list}`);
+    }
+    if (d.lastNoteDate) {
+      const daysSince = Math.floor((Date.now() - new Date(d.lastNoteDate).getTime()) / 86400000);
+      if (daysSince >= 14) risks.push(`⚠️ No project updates in ${daysSince} days — last note was on ${_fmtIso(d.lastNoteDate)}.`);
+    } else {
+      risks.push(`⚠️ No notes have been added to this project.`);
+    }
+    if (d.flaggedNotes.length) {
+      const excerpts = d.flaggedNotes.slice(0, 3).map(n => `   "${n.text}" (${_fmtIso(n.date)})`).join('\n');
+      risks.push(`⚠️ Potential blockers noted by IE:\n${excerpts}`);
+    }
+    if (!risks.length) risks.push(`✅ No immediate risks detected for ${d.merchantName}.`);
+    text = `Risk Flag — ${d.merchantName}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` + risks.join('\n\n');
+    document.getElementById('riskFlagText').textContent = text;
+    document.getElementById('riskFlagBox').style.display = '';
+    return;
+  }
+
   if (boxId) {
-    document.getElementById(textId).textContent = text;
+    const el = document.getElementById(textId);
+    if (type === 'milestoneEmail') el.innerHTML = buildMilestoneEmailHtml();
+    else el.textContent = text;
     document.getElementById(boxId).style.display = '';
   }
 }
@@ -359,18 +419,20 @@ async function copyMilestoneEmail(btn) {
     await navigator.clipboard.writeText(plain);
   }
   const orig = btn.innerHTML;
-  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
-  btn.classList.replace('btn-outline-secondary', 'btn-success');
-  setTimeout(() => { btn.innerHTML = orig; btn.classList.replace('btn-success', 'btn-outline-secondary'); }, 2000);
+  const origColor = btn.style.color;
+  btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+  btn.style.color = '#16a34a';
+  setTimeout(() => { btn.innerHTML = orig; btn.style.color = origColor; }, 2000);
 }
 
 async function copyAction(id, btn) {
   const text = document.getElementById(id).textContent;
   try { await navigator.clipboard.writeText(text); } catch (e) {}
   const orig = btn.innerHTML;
-  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
-  btn.classList.replace('btn-outline-secondary', 'btn-success');
-  setTimeout(() => { btn.innerHTML = orig; btn.classList.replace('btn-success', 'btn-outline-secondary'); }, 2000);
+  const origColor = btn.style.color;
+  btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+  btn.style.color = '#16a34a';
+  setTimeout(() => { btn.innerHTML = orig; btn.style.color = origColor; }, 2000);
 }
 
 async function copyEmailBlock() {
@@ -386,12 +448,10 @@ async function copyEmailBlock() {
   } catch (e) {
     await navigator.clipboard.writeText(buildEmailPlain(withDocs));
   }
-  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
-  btn.classList.replace('btn-outline-secondary', 'btn-success');
-  setTimeout(() => {
-    btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy to Clipboard';
-    btn.classList.replace('btn-success', 'btn-outline-secondary');
-  }, 2000);
+  const origEmail = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+  btn.style.color = '#16a34a';
+  setTimeout(() => { btn.innerHTML = origEmail; btn.style.color = '#9ca3af'; }, 2000);
 }
 </script>
 </body>

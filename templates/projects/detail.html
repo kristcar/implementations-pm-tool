@@ -12,8 +12,11 @@
   <h4 class="fw-bold mb-0">{{ project['merchant_name'] or project['name'] }}</h4>
   <div class="d-flex align-items-center gap-2">
     <button class="fun-btn btn btn-sm" style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; color:#3730a3; font-weight:600; padding:6px 13px; font-size:0.82rem;" onclick="burst(this); openNotesDrawer('helper')">
-      ✨ AI Assistant
+      ✨ <span id="aiWaveLabel"></span>
     </button>
+    <a href="{{ url_for('project_export_csv', project_id=project['id']) }}" class="fun-btn btn btn-sm" style="background:#fff; border:1px solid #1B1464; border-radius:8px; color:#1B1464; font-weight:500; padding:6px 13px; font-size:0.82rem;">
+      🌟 Download CSV
+    </a>
     <button class="fun-btn btn btn-sm" style="background:#fff; border:1px solid #1B1464; border-radius:8px; color:#1B1464; font-weight:500; padding:6px 13px; font-size:0.82rem;" onclick="burst(this); openNotesDrawer('notes')">
       📝 Notes
     </button>
@@ -652,10 +655,35 @@
 {% endblock %}
 
 {% block scripts %}
-
+<style>
+@keyframes aiWave {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+.ai-wave-char { display: inline-block; }
+.ai-wave-char.playing { animation: aiWave 0.4s ease-in-out 1; }
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
+  const aiContainer = document.getElementById('aiWaveLabel');
+  'Runway AI Assist'.split('').forEach((ch, i) => {
+    const s = document.createElement('span');
+    s.className = 'ai-wave-char';
+    s.textContent = ch === ' ' ? ' ' : ch;
+    s.style.animationDelay = i * 0.04 + 's';
+    aiContainer.appendChild(s);
+  });
+  function runAiWave() {
+    const chars = aiContainer.querySelectorAll('.ai-wave-char');
+    chars.forEach(s => { s.classList.remove('playing'); void s.offsetWidth; });
+    chars.forEach(s => s.classList.add('playing'));
+    chars.forEach(s => s.addEventListener('animationend', () => s.classList.remove('playing'), { once: true }));
+  }
+  runAiWave();
+  setInterval(runAiWave, 20000);
+
   if (window.location.hash === '#notes') {
     openNotesDrawer('notes');
   }

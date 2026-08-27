@@ -365,6 +365,51 @@ def project_delete(project_id):
     return redirect(url_for("project_list"))
 
 
+@app.route("/projects/<int:project_id>/export-csv")
+@login_required
+def project_export_csv(project_id):
+    import csv, io
+    from datetime import date
+    project = models.get_project(project_id)
+    if not project:
+        return redirect(url_for("project_list"))
+    db = models.get_db()
+    groups = db.execute(
+        "SELECT id, name FROM task_groups WHERE project_id=? ORDER BY sort_order",
+        (project_id,)
+    ).fetchall()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Milestone", "Task", "Owner", "Due Date", "Status"])
+    for g in groups:
+        tasks = db.execute(
+            "SELECT title, owner, due_date, status FROM tasks WHERE task_group_id=? ORDER BY sort_order",
+            (g["id"],)
+        ).fetchall()
+        if not tasks:
+            continue
+        for i, t in enumerate(tasks):
+            due = t["due_date"] or ""
+            if due:
+                try:
+                    parts = due.split("-")
+                    due = f"{parts[1]}/{parts[2]}/{parts[0]}"
+                except Exception:
+                    pass
+            owner = {"ie": "IE", "merchant": "Merchant", "shared": "Shared"}.get(t["owner"], t["owner"] or "")
+            status = "Complete" if t["status"] == "complete" else "Open"
+            milestone_label = g["name"] if i == 0 else ""
+            writer.writerow([milestone_label, t["title"], owner, due, status])
+        writer.writerow([])
+    db.close()
+    merchant = (project["merchant_name"] or project["name"]).replace(" ", "-")
+    today = date.today().isoformat()
+    response = make_response(output.getvalue())
+    response.headers["Content-Type"] = "text/csv"
+    response.headers["Content-Disposition"] = f"attachment; filename={merchant}-project-plan-{today}.csv"
+    return response
+
+
 # ── Timeline ──────────────────────────────────────────────────────────────────
 
 @app.route("/projects/<int:project_id>/timeline")
@@ -599,6 +644,36 @@ def project_notes(project_id):
             article = _migration_fallback
         next_tasks_with_articles.append({"task": t, "article": article})
 
+    # Flagged notes for Risk Flag
+    _risk_keywords = (
+        # clear blockers
+        "block","stuck","delay","risk","issue","concern","escalat","problem",
+        "behind","unresponsive","no response","urgent","critical","overdue",
+        "paused","on hold","cancel","churn","unhappy","frustrat",
+        # uncertainty / confusion
+        "not sure","unclear","confusion","waiting on","waiting for",
+        # technical problems
+        "bug","error","broken","fix","fail","crash","not working","doesn't work",
+        "does not work","theme","widget","liquid","conflict","sandbox",
+        # explicit action flags
+        "follow up","followup","reach out","sign off","approval needed",
+        "decision needed","todo","to-do",
+    )
+    all_notes_for_risk = db.execute(
+        "SELECT message, author, created_at FROM project_notes WHERE project_id=? ORDER BY created_at DESC",
+        (project_id,)
+    ).fetchall() if False else notes  # reuse already-fetched notes (sorted ASC, reverse below)
+    flagged_notes = []
+    for n in sorted(notes, key=lambda x: x["created_at"], reverse=True):
+        if any(kw in n["message"].lower() for kw in _risk_keywords):
+            msg = n["message"].strip().replace("\n", " ")
+            if len(msg) > 160:
+                msg = msg[:160] + "..."
+            flagged_notes.append({"text": msg, "author": n["author"], "date": n["created_at"][:10]})
+
+    # Days since last note
+    last_note_date_str = notes[-1]["created_at"][:10] if notes else None
+
     embedded = request.args.get("embedded") == "1"
     panel = request.args.get("panel", "notes")
     template = "projects/notes_embedded.html" if embedded else "projects/notes.html"
@@ -611,7 +686,9 @@ def project_notes(project_id):
                            last_completed_group=last_completed_group,
                            current_milestone_name=current_milestone_name,
                            project_pct=project_pct,
-                           is_late=is_late)
+                           is_late=is_late,
+                           flagged_notes=flagged_notes,
+                           last_note_date_str=last_note_date_str)
 
 
 @app.route("/projects/<int:project_id>/notes/add", methods=["POST"])
@@ -791,6 +868,56 @@ def _build_snapshot():
         ).fetchone()
         last_note = last_note_row["message"] if last_note_row else ""
         last_note_date = last_note_row["created_at"][:10] if last_note_row and last_note_row["created_at"] else ""
+
+        # AI Status Update
+        all_notes = db.execute(
+            "SELECT message, author FROM project_notes WHERE project_id=? ORDER BY created_at DESC",
+            (pid,)
+        ).fetchall()
+        next_task_row = db.execute(
+            """SELECT t.title, t.owner FROM tasks t
+               LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+               WHERE t.project_id=? AND t.status != 'complete'
+               ORDER BY COALESCE(tg.sort_order,0), t.sort_order LIMIT 1""",
+            (pid,)
+        ).fetchone()
+        overdue_ct = db.execute(
+            "SELECT COUNT(*) as cnt FROM tasks WHERE project_id=? AND status!='complete' AND owner IN ('merchant','shared') AND due_date < ?",
+            (pid, today.isoformat())
+        ).fetchone()["cnt"] or 0
+
+        _ai_flag_kw = (
+            "block","stuck","wait","delay","risk","issue","concern","escalat","problem",
+            "behind","slow","unresponsive","no response","follow up","followup","urgent",
+            "critical","missing","overdue","pending","paused","hold","cancel","churn",
+            "unhappy","frustrat","not sure","unclear","confusion","question","need","help",
+            "bug","error","broken","fix","fail","crash","not working","doesn't work",
+            "does not work","theme","code","script","widget","liquid","css","js",
+            "javascript","api","integration","conflict","install","migration","import",
+            "export","data","test","sandbox","action","todo","to do","to-do","reach out",
+            "contact","email","call","meeting","review","approve","approval","sign off",
+            "decision","confirm","update","change","request",
+        )
+        status_str = "behind schedule" if is_late else "on track"
+        ai_parts = [f"{p['merchant_name'] or p['name']} is {status_str} at {pct}% complete."]
+        if milestone not in ("Complete", "No tasks"):
+            ai_parts.append(f"Currently in: {milestone}.")
+        if next_task_row:
+            owner_lbl = "IE" if next_task_row["owner"] == "ie" else "Merchant"
+            ai_parts.append(f"Next up: {next_task_row['title']} ({owner_lbl}).")
+        if overdue_ct:
+            ai_parts.append(f"⚠️ {overdue_ct} overdue merchant task{'s' if overdue_ct != 1 else ''}.")
+        flagged = []
+        for n in all_notes:
+            if any(kw in n["message"].lower() for kw in _ai_flag_kw):
+                msg = n["message"].strip().replace("\n", " ")
+                if len(msg) > 150:
+                    msg = msg[:150] + "..."
+                flagged.append(f'"{msg}" — {n["author"]}')
+        if flagged:
+            ai_parts.append("Notes: " + " | ".join(flagged[:3]))
+        ai_status = " ".join(ai_parts)
+
         snapshot.append({
             "id": pid,
             "merchant_name": p["merchant_name"] or p["name"],
@@ -804,6 +931,7 @@ def _build_snapshot():
             "is_late": is_late,
             "last_note": last_note,
             "last_note_date": last_note_date,
+            "ai_status": ai_status,
         })
     db.close()
     return snapshot, today.isoformat()
@@ -842,7 +970,7 @@ def weekly_snapshot_csv():
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Merchant", "IE Owner", "Template", "SSD", "Current Milestone", "Go-Live Target", "Final Task Due Date", "% Complete", "Status", "Last Note", "Last Note Date"])
+    writer.writerow(["Merchant", "IE Owner", "Template", "SSD", "Current Milestone", "Go-Live Target", "Final Task Due Date", "% Complete", "Status", "Last Note", "Last Note Date", "Runway AI Status Update"])
     for p in snapshot:
         writer.writerow([
             p["merchant_name"],
@@ -856,6 +984,7 @@ def weekly_snapshot_csv():
             "Late" if p["is_late"] else "On Time",
             p["last_note"],
             p["last_note_date"],
+            p.get("ai_status", ""),
         ])
 
     response = make_response(output.getvalue())
@@ -870,7 +999,9 @@ def weekly_snapshot_ooo_csv():
     import csv, io
     snapshot, today = _build_snapshot()
     ie_filter = request.args.get("ie", "")
-    task_limit = max(1, min(20, int(request.args.get("tasks", 5))))
+    return_date = request.args.get("return_date", "")
+    _tasks_param = request.args.get("tasks", "5")
+    task_limit = None if (return_date or _tasks_param == "all") else max(1, min(200, int(_tasks_param)))
     if ie_filter:
         snapshot = [p for p in snapshot if p["ie_owner"] == ie_filter]
     snapshot.sort(key=lambda x: (not x["is_late"], x["merchant_name"].lower()))
@@ -883,23 +1014,107 @@ def weekly_snapshot_ooo_csv():
         "store_optimization": "Store Optimization",
     }
 
+    from datetime import date as _dt_date
+    _today_iso = _dt_date.today().isoformat()
+
     db = models.get_db()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
         "Merchant", "IE Owner", "Template", "SSD", "Current Milestone",
         "Go-Live Target", "Final Task Due Date", "% Complete", "Status",
+        "Runway AI Status Update",
         "Last Note", "Last Note Date",
         "Immediate Next Task", "Task Owner", "Done?"
     ])
     for p in snapshot:
-        tasks = db.execute(
-            """SELECT t.title, t.owner FROM tasks t
-               LEFT JOIN task_groups tg ON tg.id = t.task_group_id
-               WHERE t.project_id = ? AND t.status != 'complete'
-               ORDER BY COALESCE(tg.sort_order, 0), t.sort_order""",
+        if return_date:
+            tasks = db.execute(
+                """SELECT t.title, t.owner FROM tasks t
+                   LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+                   WHERE t.project_id = ? AND t.status != 'complete'
+                     AND (t.due_date IS NULL OR t.due_date <= ?)
+                   ORDER BY COALESCE(tg.sort_order, 0), t.sort_order""",
+                (p["id"], return_date)
+            ).fetchall()
+        else:
+            if task_limit is None:
+                tasks = db.execute(
+                    """SELECT t.title, t.owner FROM tasks t
+                       LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+                       WHERE t.project_id = ? AND t.status != 'complete'
+                       ORDER BY COALESCE(tg.sort_order, 0), t.sort_order""",
+                    (p["id"],)
+                ).fetchall()
+            else:
+                tasks = db.execute(
+                    """SELECT t.title, t.owner FROM tasks t
+                       LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+                       WHERE t.project_id = ? AND t.status != 'complete'
+                       ORDER BY COALESCE(tg.sort_order, 0), t.sort_order
+                       LIMIT ?""",
+                    (p["id"], task_limit)
+                ).fetchall()
+
+        # Build project summary
+        recent_notes = db.execute(
+            """SELECT message, author, created_at FROM project_notes
+               WHERE project_id = ? ORDER BY created_at DESC""",
             (p["id"],)
         ).fetchall()
+        overdue_merchant_count = db.execute(
+            """SELECT COUNT(*) as cnt FROM tasks
+               WHERE project_id=? AND status != 'complete'
+               AND owner IN ('merchant','shared') AND due_date < ?""",
+            (p["id"], _today_iso)
+        ).fetchone()["cnt"] or 0
+
+        status_str = "behind schedule" if p["is_late"] else "on track"
+        summary_parts = [
+            f"{p['merchant_name']} is {status_str} at {p['pct']}% complete.",
+        ]
+        if p["milestone"] and p["milestone"] not in ("Complete", "No tasks"):
+            summary_parts.append(f"Currently in: {p['milestone']}.")
+        if p["target_go_live_date"]:
+            gl_parts = p["target_go_live_date"].split("-")
+            gl_fmt = f"{gl_parts[1]}/{gl_parts[2]}/{gl_parts[0]}" if len(gl_parts) == 3 else p["target_go_live_date"]
+            summary_parts.append(f"Go-live target: {gl_fmt}.")
+        if tasks:
+            next_task = tasks[0]
+            owner_label = "IE" if next_task["owner"] == "ie" else "Merchant"
+            summary_parts.append(f"Next up: {next_task['title']} ({owner_label}).")
+        if overdue_merchant_count:
+            summary_parts.append(f"⚠️ {overdue_merchant_count} overdue merchant task{'s' if overdue_merchant_count != 1 else ''} - follow up needed.")
+        if recent_notes:
+            _flag_keywords = (
+                # blockers & status
+                "block", "stuck", "wait", "delay", "risk", "issue", "concern",
+                "escalat", "problem", "behind", "slow", "unresponsive", "no response",
+                "follow up", "followup", "urgent", "critical", "missing", "overdue",
+                "pending", "paused", "hold", "cancel", "churn", "unhappy", "frustrat",
+                "not sure", "unclear", "confusion", "question", "need", "help",
+                # technical
+                "bug", "error", "broken", "fix", "fail", "crash", "not working",
+                "doesn't work", "does not work", "theme", "code", "script", "widget",
+                "liquid", "css", "js", "javascript", "api", "integration", "conflict",
+                "install", "migration", "import", "export", "data", "test", "sandbox",
+                # action items
+                "action", "todo", "to do", "to-do", "reach out", "contact", "email",
+                "call", "meeting", "review", "approve", "approval", "sign off",
+                "decision", "confirm", "update", "change", "request",
+            )
+            flagged = []
+            for n in recent_notes:
+                msg_lower = n["message"].lower()
+                if any(kw in msg_lower for kw in _flag_keywords):
+                    msg = n["message"].strip().replace("\n", " ")
+                    if len(msg) > 150:
+                        msg = msg[:150] + "..."
+                    flagged.append(f'"{msg}" - {n["author"]}')
+            if flagged:
+                summary_parts.append("Watch out for: " + " | ".join(flagged[:3]))
+        summary = " ".join(summary_parts)
+
         project_cols = [
             p["merchant_name"],
             p["ie_owner"],
@@ -910,13 +1125,14 @@ def weekly_snapshot_ooo_csv():
             p["projected_end"],
             f"{p['pct']}%",
             "Late" if p["is_late"] else "On Time",
+            summary,
             p["last_note"],
             p["last_note_date"],
         ]
         if not tasks:
             writer.writerow(project_cols + ["", "", ""])
         else:
-            for i, t in enumerate(tasks[:task_limit]):
+            for i, t in enumerate(tasks):
                 owner_label = "IE" if t["owner"] == "ie" else "Merchant"
                 row = (project_cols if i == 0 else [""] * len(project_cols))
                 writer.writerow(list(row) + [t["title"], owner_label, ""])
