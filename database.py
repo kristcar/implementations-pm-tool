@@ -31,6 +31,14 @@ def migrate_db():
         None,
         # v2 — add risk_flag to projects
         "ALTER TABLE projects ADD COLUMN risk_flag INTEGER NOT NULL DEFAULT 0",
+        # v3 — add project_notes table
+        """CREATE TABLE IF NOT EXISTS project_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            author TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )""",
     ]
 
     for v, sql in enumerate(migrations, start=1):
@@ -120,6 +128,13 @@ def init_db():
             owner TEXT DEFAULT 'ie',
             days_offset INTEGER DEFAULT 0,
             sort_order INTEGER DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS project_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            author TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     """)
 

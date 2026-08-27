@@ -425,6 +425,70 @@ def milestone_delete(milestone_id):
     return redirect(url_for("project_timeline", project_id=project_id))
 
 
+# ── Project Notes ─────────────────────────────────────────────────────────────
+
+@app.route("/projects/<int:project_id>/notes")
+@login_required
+def project_notes(project_id):
+    project = models.get_project(project_id)
+    if not project:
+        flash("Project not found.", "danger")
+        return redirect(url_for("project_list"))
+    db = models.get_db()
+    notes = db.execute(
+        "SELECT * FROM project_notes WHERE project_id=? ORDER BY created_at ASC",
+        (project_id,)
+    ).fetchall()
+    # Next 4 incomplete tasks in order
+    next_tasks = db.execute(
+        """SELECT t.title, t.owner, t.due_date, tg.name as group_name
+           FROM tasks t
+           LEFT JOIN task_groups tg ON t.task_group_id = tg.id
+           WHERE t.project_id=? AND t.status != 'complete'
+           ORDER BY t.due_date ASC, t.id ASC
+           LIMIT 4""",
+        (project_id,)
+    ).fetchall()
+    # Merchant/shared tasks for email block (from all incomplete, not just next 4)
+    merchant_tasks = db.execute(
+        """SELECT t.title, t.owner, t.due_date, tg.name as group_name
+           FROM tasks t
+           LEFT JOIN task_groups tg ON t.task_group_id = tg.id
+           WHERE t.project_id=? AND t.status != 'complete' AND t.owner IN ('merchant','shared')
+           ORDER BY t.due_date ASC, t.id ASC
+           LIMIT 2""",
+        (project_id,)
+    ).fetchall()
+    db.close()
+    return render_template("projects/notes.html", project=project, notes=notes,
+                           next_tasks=next_tasks, merchant_tasks=merchant_tasks)
+
+
+@app.route("/projects/<int:project_id>/notes/add", methods=["POST"])
+@login_required
+def project_notes_add(project_id):
+    message = request.form.get("message", "").strip()
+    if message:
+        db = models.get_db()
+        db.execute(
+            "INSERT INTO project_notes (project_id, author, message) VALUES (?,?,?)",
+            (project_id, session.get("current_user", "Unknown"), message)
+        )
+        db.commit()
+        db.close()
+    return redirect(url_for("project_notes", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/notes/<int:note_id>/delete", methods=["POST"])
+@login_required
+def project_notes_delete(project_id, note_id):
+    db = models.get_db()
+    db.execute("DELETE FROM project_notes WHERE id=? AND project_id=?", (note_id, project_id))
+    db.commit()
+    db.close()
+    return redirect(url_for("project_notes", project_id=project_id))
+
+
 # ── Tasks ─────────────────────────────────────────────────────────────────────
 
 @app.route("/projects/<int:project_id>/tasks/add", methods=["POST"])

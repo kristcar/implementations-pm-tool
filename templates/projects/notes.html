@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Notes — {{ project['name'] }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('project_list') }}">Projects</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project['id']) }}">{{ project['name'] }}</a></li>
+        <li class="breadcrumb-item active">Notes</li>
+      </ol>
+    </nav>
+    <h4 class="fw-bold mb-0">{{ project['name'] }} — Notes</h4>
+  </div>
+  <a href="{{ url_for('project_detail', project_id=project['id']) }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Back to Project
+  </a>
+</div>
+
+<div class="row g-4">
+
+  <!-- Left: Notes feed -->
+  <div class="col-lg-7">
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body p-0">
+        {% if notes %}
+        <div style="max-height:520px; overflow-y:auto; padding:1.25rem 1.5rem;">
+          {% for note in notes %}
+          <div class="d-flex gap-3 mb-4">
+            <div class="flex-shrink-0">
+              <span style="background:var(--rc-cobalt); color:#fff; font-size:0.7rem; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700;">
+                {{ note['author'].split()[0][0] }}{{ note['author'].split()[-1][0] if note['author'].split()|length > 1 else '' }}
+              </span>
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-baseline gap-2 mb-1">
+                <span class="fw-semibold small" style="color:#1B1464;">{{ note['author'] }}</span>
+                <span class="text-muted" style="font-size:0.7rem;">{{ note['created_at'][:16].replace('T', ' ') }}</span>
+                {% if note['author'] == session.current_user %}
+                <form method="POST" action="{{ url_for('project_notes_delete', project_id=project['id'], note_id=note['id']) }}" style="display:inline; margin-left:auto;">
+                  <button type="submit" class="btn btn-link p-0 text-muted" style="font-size:0.7rem;" onclick="return confirm('Delete this note?')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+              <div style="font-size:0.88rem; color:#374151; line-height:1.5; white-space:pre-wrap;">{{ note['message'] }}</div>
+            </div>
+          </div>
+          {% if not loop.last %}<hr class="my-3" style="opacity:0.1;">{% endif %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5" style="font-size:0.9rem;">
+          <i class="bi bi-chat-left-text mb-2 d-block" style="font-size:1.5rem; opacity:0.3;"></i>
+          No notes yet. Add the first one below.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Add note -->
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('project_notes_add', project_id=project['id']) }}">
+          <div class="mb-2">
+            <textarea name="message" class="form-control" rows="3"
+                      placeholder="Add a note…" required
+                      style="resize:vertical; font-size:0.88rem;"></textarea>
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary btn-sm px-4">
+              <i class="bi bi-send me-1"></i>Add Note
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right: Follow Up Helper -->
+  <div class="col-lg-5" style="position:sticky; top:1rem; align-self:flex-start;">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold" style="background:#f8f9ff; border-bottom:1px solid #e5e7eb;">
+        <i class="bi bi-lightning-charge me-2 text-primary"></i>Follow Up Helper
+      </div>
+      <div class="card-body">
+
+        {% if next_tasks %}
+        <div class="mb-3">
+          <div class="text-muted small fw-semibold mb-2" style="letter-spacing:0.04em;">NEXT UP</div>
+          <table style="width:100%; border-collapse:collapse;">
+          {% for task in next_tasks %}
+          <tr style="vertical-align:top;">
+            <td style="width:80px; padding-bottom:10px; padding-right:10px;">
+              <span class="badge owner-badge owner-{{ task['owner'] }}" style="display:block; text-align:center;">{{ task['owner']|upper }}</span>
+            </td>
+            <td style="padding-bottom:10px;">
+              <div style="font-size:0.85rem; color:#1a1a2e; font-weight:500;">{{ task['title'] }}</div>
+              {% if task['group_name'] %}
+              <div class="text-muted" style="font-size:0.7rem;">{{ task['group_name'] }}</div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </table>
+        </div>
+        {% else %}
+        <div class="text-muted small text-center py-2">🎉 All tasks complete!</div>
+        {% endif %}
+
+        {% if merchant_tasks %}
+        <hr style="opacity:0.15;">
+        <div class="mb-2">
+          <div class="text-muted small fw-semibold mb-2" style="letter-spacing:0.04em;">MERCHANT EMAIL BLOCK</div>
+          <div class="position-relative">
+            {% set due_dates = merchant_tasks | selectattr('due_date') | map(attribute='due_date') | list %}
+          {% set target_date = due_dates | max if due_dates else None %}
+          {% if target_date %}
+            {% set td_parts = target_date.split('-') %}
+            {% set target_fmt = td_parts[1] + '/' + td_parts[2] + '/' + td_parts[0][2:] %}
+          {% else %}
+            {% set target_fmt = '[target date]' %}
+          {% endif %}
+          <textarea id="emailBlock" class="form-control" rows="7" readonly
+                      style="font-size:0.78rem; background:#f8f9ff; color:#374151; resize:none; font-family:monospace; line-height:1.6;">Hello,
+
+Here are your next action items:
+
+{% for task in merchant_tasks %}{{ loop.index }}. {{ task['title'] }}
+{% endfor %}
+Please try to complete these by {{ target_fmt }}.
+
+Please let me know if you have any questions!
+
+{{ session.current_user }}</textarea>
+            <button onclick="copyEmailBlock()" class="btn btn-sm btn-outline-secondary mt-2 w-100" style="font-size:0.78rem;">
+              <i class="bi bi-clipboard me-1"></i>Copy to Clipboard
+            </button>
+          </div>
+        </div>
+        {% else %}
+        <hr style="opacity:0.15;">
+        <div class="text-muted small text-center py-2">No pending merchant tasks.</div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyEmailBlock() {
+  const el = document.getElementById('emailBlock');
+  el.select();
+  document.execCommand('copy');
+  const btn = el.nextElementSibling;
+  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+  btn.classList.replace('btn-outline-secondary', 'btn-success');
+  setTimeout(() => {
+    btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy to Clipboard';
+    btn.classList.replace('btn-success', 'btn-outline-secondary');
+  }, 2000);
+}
+</script>
+{% endblock %}
