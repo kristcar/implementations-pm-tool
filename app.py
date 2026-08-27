@@ -471,8 +471,46 @@ def project_notes(project_id):
     db.close()
 
     # Fetch support article for each merchant task
-    import urllib.request, urllib.parse, json as _json
+    import urllib.request, urllib.parse, json as _json, re as _re
+    is_skio = project["template_type"] == "skio"
+
+    _skio_articles = None
+    def _load_skio_articles():
+        nonlocal _skio_articles
+        if _skio_articles is not None:
+            return _skio_articles
+        try:
+            req = urllib.request.Request("https://help.skio.com/llms.txt", headers={"Accept": "text/plain", "User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                text = r.read().decode("utf-8")
+            entries = []
+            for line in text.splitlines():
+                m = _re.match(r'-\s+\[([^\]]+)\]\(([^)]+)\)', line)
+                if m:
+                    entries.append({"title": m.group(1), "url": m.group(2).replace(".md", "")})
+            _skio_articles = entries
+        except Exception:
+            _skio_articles = []
+        return _skio_articles
+
+    def _skio_article_search(task_title):
+        articles = _load_skio_articles()
+        if not articles:
+            return None
+        # Use 5-char prefix stems so "migration" matches "migrations" etc.
+        def stems(text):
+            return set(w.lower()[:6] for w in _re.split(r'\W+', text) if len(w) > 4)
+        task_stems = stems(task_title)
+        best, best_score = None, 0
+        for a in articles:
+            score = len(task_stems & stems(a["title"]))
+            if score > best_score:
+                best, best_score = a, score
+        return best if best_score > 0 else None
+
     def _fetch_support_article(title):
+        if is_skio:
+            return _skio_article_search(title)
         try:
             q = urllib.parse.urlencode({"query": title, "per_page": 1})
             url = f"https://support.getrecharge.com/api/v2/help_center/articles/search.json?{q}"
