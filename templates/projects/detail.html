@@ -336,7 +336,7 @@
               <label class="form-label">Target Go-Live</label>
               <input type="date" name="target_go_live_date" class="form-control" value="{{ project['target_go_live_date'] or '' }}">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4" id="actualGoLiveField" style="display:{% if project['status'] == 'complete' %}block{% else %}none{% endif %};">
               <label class="form-label">Actual Go-Live</label>
               <input type="date" name="actual_go_live_date" class="form-control" value="{{ project['actual_go_live_date'] or '' }}">
             </div>
@@ -542,6 +542,11 @@
 {% block scripts %}
 
 <script>
+// Show/hide Actual Go-Live based on status
+document.querySelector('select[name="status"]').addEventListener('change', function() {
+  document.getElementById('actualGoLiveField').style.display = this.value === 'complete' ? 'block' : 'none';
+});
+
 // Populate add task modal
 document.querySelectorAll('.add-task-btn').forEach(btn => {
   btn.addEventListener('click', () => {
