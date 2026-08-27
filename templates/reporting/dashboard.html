@@ -181,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function fmtDate(d) { return d.toISOString().slice(0, 10); }
+function fmtDateDisplay(d) { const p = d.toISOString().slice(0, 10).split('-'); return `${p[1]}/${p[2]}/${p[0]}`; }
 
 function renderPanel(data, suffix) {
   const stalePct = data.total > 0 ? Math.round((data.total - data.engaged) / data.total * 100) : 0;
@@ -224,8 +225,8 @@ async function loadEngagement() {
   const start7  = new Date(today); start7.setDate(today.getDate() - 7);
   const start30 = new Date(today); start30.setDate(today.getDate() - 30);
 
-  document.getElementById('range7Label').textContent  = `${fmtDate(start7)} to ${fmtDate(today)}`;
-  document.getElementById('range30Label').textContent = `${fmtDate(start30)} to ${fmtDate(today)}`;
+  document.getElementById('range7Label').textContent  = `${fmtDateDisplay(start7)} to ${fmtDateDisplay(today)}`;
+  document.getElementById('range30Label').textContent = `${fmtDateDisplay(start30)} to ${fmtDateDisplay(today)}`;
 
   const [r7, r30] = await Promise.all([
     fetch(`/api/reporting/engaged?start=${fmtDate(start7)}&end=${fmtDate(today)}${ieParam}`).then(r => r.json()),

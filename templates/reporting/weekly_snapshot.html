@@ -52,6 +52,7 @@
           <th class="ps-4 py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Merchant</th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">IE</th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Template</th>
+          <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">SSD</th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Current Milestone</th>
           <th class="py-3" style="font-size:0.78rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">
             Go-Live Target
@@ -75,6 +76,7 @@
           <td>
             <span class="small">{{ tpl_labels.get(p.template_type, p.template_type or '—') }}</span>
           </td>
+          <td class="small text-muted">{{ p.contract_start_date | fmtdate }}</td>
           <td class="small" style="max-width:220px;">{{ p.milestone }}</td>
           <td class="small text-muted">{{ p.target_go_live_date | fmtdate }}</td>
           <td class="small text-muted">{{ p.projected_end | fmtdate }}</td>
@@ -107,7 +109,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="10" class="text-center text-muted py-5">No active projects.</td>
+          <td colspan="11" class="text-center text-muted py-5">No active projects.</td>
         </tr>
         {% endfor %}
       </tbody>

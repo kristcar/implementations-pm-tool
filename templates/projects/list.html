@@ -143,10 +143,10 @@
             {% endif %}
           </td>
 
-          <td class="text-muted small">{{ p['contract_start_date'] or '—' }}</td>
+          <td class="text-muted small">{{ p['contract_start_date'] | fmtdate }}</td>
 
           <td class="small {% if p['status'] != 'complete' and p['target_go_live_date'] and p['target_go_live_date'] < today.isoformat() %}text-danger fw-semibold{% else %}text-muted{% endif %}">
-            {{ p['target_go_live_date'] or '—' }}
+            {{ p['target_go_live_date'] | fmtdate }}
           </td>
 
           <td class="text-center text-muted small">

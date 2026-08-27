@@ -108,8 +108,8 @@ def project_list():
         prog = models.project_progress(p["id"])
         overdue = models.overdue_task_count(p["id"])
         try:
-            start = date.fromisoformat(p["contract_start_date"]) if p["contract_start_date"] else None
-            elapsed = (today - start).days if start else None
+            created = date.fromisoformat(p["created_at"][:10]) if p["created_at"] else None
+            elapsed = (today - created).days if created else None
         except ValueError:
             elapsed = None
         is_late = _is_late(p, today)
@@ -730,6 +730,7 @@ def _build_snapshot():
             "merchant_name": p["merchant_name"] or p["name"],
             "ie_owner": p["ie_owner"] or "—",
             "template_type": p["template_type"],
+            "contract_start_date": p["contract_start_date"] or "",
             "target_go_live_date": p["target_go_live_date"] or "",
             "projected_end": projected_end or "",
             "milestone": milestone,
@@ -775,12 +776,13 @@ def weekly_snapshot_csv():
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Merchant", "IE Owner", "Template", "Current Milestone", "Go-Live Target", "Final Task Due Date", "% Complete", "Status", "Last Note", "Last Note Date"])
+    writer.writerow(["Merchant", "IE Owner", "Template", "SSD", "Current Milestone", "Go-Live Target", "Final Task Due Date", "% Complete", "Status", "Last Note", "Last Note Date"])
     for p in snapshot:
         writer.writerow([
             p["merchant_name"],
             p["ie_owner"],
             tpl_labels.get(p["template_type"], p["template_type"] or ""),
+            p["contract_start_date"],
             p["milestone"],
             p["target_go_live_date"],
             p["projected_end"],
@@ -819,7 +821,7 @@ def weekly_snapshot_ooo_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Merchant", "IE Owner", "Template", "Current Milestone",
+        "Merchant", "IE Owner", "Template", "SSD", "Current Milestone",
         "Go-Live Target", "Final Task Due Date", "% Complete", "Status",
         "Last Note", "Last Note Date",
         "Immediate Next Task", "Task Owner", "Done?"
@@ -836,6 +838,7 @@ def weekly_snapshot_ooo_csv():
             p["merchant_name"],
             p["ie_owner"],
             tpl_labels.get(p["template_type"], p["template_type"] or ""),
+            p["contract_start_date"],
             p["milestone"],
             p["target_go_live_date"],
             p["projected_end"],
@@ -1026,7 +1029,7 @@ def api_engaged():
         {
             "name": r["merchant_name"] or r["name"],
             "ie": r["ie_owner"] or "",
-            "updated": r["updated_at"][:10] if r["updated_at"] else "—",
+            "updated": fmtdate(r["updated_at"][:10]) if r["updated_at"] else "—",
         }
         for r in all_active if r["id"] not in engaged_ids
     ]
