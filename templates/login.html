@@ -132,10 +132,9 @@
     }
 
     .wordmark {
-      filter: brightness(0) invert(1);
+      filter: brightness(0) saturate(100%) invert(13%) sepia(74%) saturate(1200%) hue-rotate(222deg) brightness(80%);
       height: 22px;
       margin-bottom: 1.25rem;
-      opacity: 0.9;
     }
   </style>
 </head>
@@ -165,9 +164,9 @@
   <form method="POST" action="{{ url_for('login') }}">
     <div class="mb-3">
       <select name="ie_name" class="form-select" required>
-        <option value="" disabled selected>Select your name…</option>
+        <option value="" disabled {% if not last_user %}selected{% endif %}>Select your name…</option>
         {% for ie in ie_owners %}
-        <option value="{{ ie }}">{{ ie }}</option>
+        <option value="{{ ie }}" {% if ie == last_user %}selected{% endif %}>{{ ie }}</option>
         {% endfor %}
       </select>
     </div>

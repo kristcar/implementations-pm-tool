@@ -413,3 +413,9 @@ body { background-color: #f7f8fc; }
   background: #fff5f5 !important;
   border-left: 3px solid #f87171;
 }
+
+/* ── Project detail info card ── */
+.info-field { display: flex; flex-direction: column; gap: 3px; }
+.info-field-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; color: #9ca3af; }
+.info-field-value { font-size: 0.875rem; font-weight: 500; color: #374151; }
+.info-field-divider { width: 1px; height: 36px; background: #e5e7eb; flex-shrink: 0; }

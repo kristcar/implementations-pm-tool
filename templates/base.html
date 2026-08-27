@@ -17,12 +17,10 @@
     <span class="navbar-subtitle">Runway{% if app_environment == 'sandbox' %} &nbsp;<span style="font-size:0.65rem; background:#ec4899; color:#fff; border-radius:4px; padding:1px 6px; font-weight:700; letter-spacing:0.05em; vertical-align:middle;">SANDBOX</span>{% endif %}</span>
   </a>
   <div class="navbar-nav ms-auto d-flex align-items-center gap-1">
-    <a class="nav-link {% if request.endpoint == 'my_projects' %}nav-link-active{% endif %}"
-       href="{{ url_for('my_projects') }}">My Projects</a>
-    <a class="nav-link {% if request.endpoint == 'weekly_snapshot' %}nav-link-active{% endif %}"
-       href="{{ url_for('weekly_snapshot') }}">Status Board</a>
     <a class="nav-link {% if request.endpoint == 'project_list' %}nav-link-active{% endif %}"
        href="{{ url_for('project_list') }}">All Projects</a>
+    <a class="nav-link {% if request.endpoint == 'weekly_snapshot' %}nav-link-active{% endif %}"
+       href="{{ url_for('weekly_snapshot') }}">Status Board</a>
     <a class="nav-link {% if request.endpoint == 'reporting' %}nav-link-active{% endif %}"
        href="{{ url_for('reporting') }}">Reporting</a>
     <a class="nav-link btn btn-sm btn-rc-new ms-2 text-white px-3" href="{{ url_for('project_new') }}">

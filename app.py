@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, session
 from functools import wraps
+import database
 from database import init_db, migrate_db
 import models
 
@@ -56,10 +57,13 @@ def login():
         name = request.form.get("ie_name", "").strip()
         if name:
             session["current_user"] = name
-            return redirect(url_for("my_projects"))
+            resp = redirect(url_for("project_list"))
+            resp.set_cookie("last_user", name, max_age=60*60*24*365)
+            return resp
         flash("Please select your name.", "danger")
     ie_owners = models.list_ie_owners()
-    return render_template("login.html", ie_owners=ie_owners)
+    last_user = request.cookies.get("last_user", "")
+    return render_template("login.html", ie_owners=ie_owners, last_user=last_user)
 
 
 @app.route("/logout")
@@ -85,10 +89,10 @@ def index():
 @login_required
 def project_list():
     status = request.args.get("status", "all")
+    timing = request.args.get("timing", "all")  # all | on_time | late
     from datetime import date
     today = date.today()
     projects = models.list_projects(status)
-    ie_owners = models.list_ie_owners()
     enriched = []
     for p in projects:
         prog = models.project_progress(p["id"])
@@ -101,18 +105,23 @@ def project_list():
         is_late = _is_late(p, today)
         enriched.append({"project": p, "progress": prog, "overdue": overdue, "elapsed": elapsed, "is_late": is_late})
 
+    if timing == "late":
+        enriched = [i for i in enriched if i["is_late"]]
+    elif timing == "on_time":
+        enriched = [i for i in enriched if not i["is_late"]]
+
     def sort_key(item):
         s = item["project"]["status"]
         if s == "active" and item["is_late"]:
-            return 0  # Late first
+            return 0
         if s == "active":
-            return 1  # On Time second
+            return 1
         if s == "complete":
-            return 2  # Done third
-        return 3      # Cancelled last
+            return 2
+        return 3
 
     enriched.sort(key=sort_key)
-    return render_template("projects/list.html", projects=enriched, active_status=status, ie_owners=ie_owners, today=today)
+    return render_template("projects/list.html", projects=enriched, active_status=status, active_timing=timing, today=today)
 
 
 @app.route("/my-projects")
@@ -525,6 +534,17 @@ def task_add(project_id):
 def tasks_complete_all(project_id):
     models.complete_all_tasks(project_id)
     flash("All tasks marked as complete.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+@app.route("/projects/<int:project_id>/complete-all-and-close", methods=["POST"])
+@login_required
+def project_complete_all_and_close(project_id):
+    models.complete_all_tasks(project_id)
+    db = database.get_db()
+    db.execute("UPDATE projects SET status='complete', updated_at=CURRENT_TIMESTAMP WHERE id=?", (project_id,))
+    db.commit()
+    db.close()
+    flash("All tasks marked complete and project closed.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 

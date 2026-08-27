@@ -32,19 +32,21 @@
       </div>
     </div>
 
-    <!-- IE Owner dropdown -->
-    <div class="d-flex align-items-center gap-2">
-      <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
-      <select id="ie-select" class="form-select form-select-sm" style="width:200px; border-color:#d1d5db;">
-        <option value="">All IEs</option>
-        {% for ie in ie_owners %}
-        <option value="{{ ie }}">{{ ie }}</option>
-        {% endfor %}
-      </select>
-      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addIEModal" title="Add new IE">
-        <i class="bi bi-person-plus"></i>
-      </button>
+    <!-- Timing filter (active projects only) -->
+    {% if active_status == 'active' %}
+    <div class="d-flex align-items-center gap-1">
+      {% for label, val in [('All', 'all'), ('On Time', 'on_time'), ('Late', 'late')] %}
+      <a href="{{ url_for('project_list', status=active_status, timing=val) }}"
+         class="btn btn-sm"
+         style="font-size:0.78rem;
+           {% if active_timing == val %}
+             background:var(--rc-cobalt); color:#fff; border-color:var(--rc-cobalt);
+           {% else %}
+             background:transparent; color:#6b7280; border-color:#d1d5db;
+           {% endif %}">{{ label }}</a>
+      {% endfor %}
     </div>
+    {% endif %}
 
     <span class="text-muted small">{{ projects|length }} project{{ 's' if projects|length != 1 }}</span>
   </div>
@@ -185,24 +187,19 @@
 
 {% block scripts %}
 <script>
-const ieSelect       = document.getElementById('ie-select');
 const merchantSearch = document.getElementById('merchant-search');
 const merchantClear  = document.getElementById('merchant-clear');
 const rows           = document.querySelectorAll('tbody tr.project-row');
 
 function filterRows() {
-  const ieQ = ieSelect.value.toLowerCase();
-  const mQ  = merchantSearch.value.trim().toLowerCase();
+  const mQ = merchantSearch.value.trim().toLowerCase();
   merchantClear.classList.toggle('d-none', mQ === '');
   rows.forEach(row => {
-    const owner    = (row.dataset.ieOwner || '').toLowerCase();
     const merchant = (row.dataset.merchant || '').toLowerCase();
-    const show = (!ieQ || owner === ieQ) && (!mQ || merchant.includes(mQ));
-    row.style.display = show ? '' : 'none';
+    row.style.display = (!mQ || merchant.includes(mQ)) ? '' : 'none';
   });
 }
 
-ieSelect.addEventListener('change', filterRows);
 merchantSearch.addEventListener('input', filterRows);
 merchantClear.addEventListener('click', () => { merchantSearch.value = ''; filterRows(); merchantSearch.focus(); });
 </script>
