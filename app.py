@@ -460,8 +460,31 @@ def project_notes(project_id):
         (project_id,)
     ).fetchall()
     db.close()
+
+    # Fetch support article for each merchant task
+    import urllib.request, urllib.parse, json as _json
+    def _fetch_support_article(title):
+        try:
+            q = urllib.parse.urlencode({"query": title, "per_page": 1})
+            url = f"https://support.getrecharge.com/api/v2/help_center/articles/search.json?{q}"
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=3) as r:
+                data = _json.loads(r.read())
+            results = data.get("results", [])
+            if results:
+                return {"title": results[0]["title"], "url": results[0]["html_url"]}
+        except Exception:
+            pass
+        return None
+
+    merchant_tasks_with_articles = []
+    for t in merchant_tasks:
+        article = _fetch_support_article(t["title"])
+        merchant_tasks_with_articles.append({"task": t, "article": article})
+
     return render_template("projects/notes.html", project=project, notes=notes,
-                           next_tasks=next_tasks, merchant_tasks=merchant_tasks)
+                           next_tasks=next_tasks, merchant_tasks=merchant_tasks,
+                           merchant_tasks_with_articles=merchant_tasks_with_articles)
 
 
 @app.route("/projects/<int:project_id>/notes/add", methods=["POST"])

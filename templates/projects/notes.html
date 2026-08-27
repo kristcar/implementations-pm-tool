@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Notes — {{ project['name'] }}{% endblock %}
+{% set target_fmt = '[target date]' %}
 
 {% block content %}
 <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
@@ -113,34 +114,48 @@
         {% endif %}
 
         {% if merchant_tasks %}
+        {% set due_dates = merchant_tasks | selectattr('due_date') | map(attribute='due_date') | list %}
+        {% set target_date = due_dates | max if due_dates else None %}
+        {% if target_date %}
+          {% set td_parts = target_date.split('-') %}
+          {% set target_fmt = td_parts[1] + '/' + td_parts[2] + '/' + td_parts[0][2:] %}
+        {% else %}
+          {% set target_fmt = '[target date]' %}
+        {% endif %}
         <hr style="opacity:0.15;">
         <div class="mb-2">
-          <div class="text-muted small fw-semibold mb-2" style="letter-spacing:0.04em;">MERCHANT EMAIL BLOCK</div>
-          <div class="position-relative">
-            {% set due_dates = merchant_tasks | selectattr('due_date') | map(attribute='due_date') | list %}
-          {% set target_date = due_dates | max if due_dates else None %}
-          {% if target_date %}
-            {% set td_parts = target_date.split('-') %}
-            {% set target_fmt = td_parts[1] + '/' + td_parts[2] + '/' + td_parts[0][2:] %}
-          {% else %}
-            {% set target_fmt = '[target date]' %}
-          {% endif %}
-          <textarea id="emailBlock" class="form-control" rows="7" readonly
-                      style="font-size:0.78rem; background:#f8f9ff; color:#374151; resize:none; font-family:monospace; line-height:1.6;">Hello,
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="text-muted small fw-semibold" style="letter-spacing:0.04em;">MERCHANT EMAIL BLOCK</div>
+          </div>
+
+          <!-- Support docs toggle -->
+          <div class="mb-2">
+            <div class="form-check form-switch mb-1">
+              <input class="form-check-input" type="checkbox" id="supportDocsToggle" onchange="toggleSupportDocs()" checked>
+              <label class="form-check-label small" for="supportDocsToggle" style="font-size:0.8rem;">Include support documents</label>
+            </div>
+            <div id="supportDocsDisclaimer" class="text-muted align-items-start gap-2" style="font-size:0.72rem; display:none; padding-left:2.25rem;">
+              <i class="bi bi-stars flex-shrink-0" style="color:#8b5cf6; font-size:0.85rem; margin-top:1px;"></i>
+              <span>Powered by AI search. Links may not be perfect, spot-check before you send.</span>
+            </div>
+          </div>
+
+          <!-- Visual preview with hyperlinks -->
+          <div id="emailPreview" style="font-size:0.78rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; padding:0.75rem 1rem; white-space:pre-wrap; margin-bottom:8px;">Hello,
 
 Here are your next action items:
-
-{% for task in merchant_tasks %}{{ loop.index }}. {{ task['title'] }}
+{% for item in merchant_tasks_with_articles %}{{ loop.index }}. {{ item.task['title'] }}<span class="support-doc-line">
+   📖 <a href="{{ item.article.url if item.article else '#' }}" target="_blank" style="color:var(--rc-cobalt); font-size:0.75rem;">{{ item.article.title if item.article else '(no article found)' }}</a></span>
 {% endfor %}
 Please try to complete these by {{ target_fmt }}.
 
 Please let me know if you have any questions!
 
-{{ session.current_user }}</textarea>
-            <button onclick="copyEmailBlock()" class="btn btn-sm btn-outline-secondary mt-2 w-100" style="font-size:0.78rem;">
-              <i class="bi bi-clipboard me-1"></i>Copy to Clipboard
-            </button>
-          </div>
+{{ session.current_user }}</div>
+
+          <button onclick="copyEmailBlock()" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.78rem;">
+            <i class="bi bi-clipboard me-1"></i>Copy to Clipboard
+          </button>
         </div>
         {% else %}
         <hr style="opacity:0.15;">
@@ -156,11 +171,85 @@ Please let me know if you have any questions!
 
 {% block scripts %}
 <script>
-function copyEmailBlock() {
-  const el = document.getElementById('emailBlock');
-  el.select();
-  document.execCommand('copy');
-  const btn = el.nextElementSibling;
+const MERCHANT_TASKS = [
+  {% for item in merchant_tasks_with_articles %}
+  {
+    title: {{ item.task['title'] | tojson }},
+    article: {% if item.article %}{ title: {{ item.article.title | tojson }}, url: {{ item.article.url | tojson }} }{% else %}null{% endif %}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+const MERCHANT_DUE_DATES = [{% for t in merchant_tasks %}{% if t['due_date'] %}{{ t['due_date'] | tojson }}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}];
+const TARGET_DATE = (() => {
+  if (!MERCHANT_DUE_DATES.length) return '[target date]';
+  const iso = MERCHANT_DUE_DATES.sort().at(-1); // latest date
+  const [y, m, d] = iso.split('-');
+  return `${m}/${d}/${y.slice(2)}`;
+})();
+const IE_NAME = {{ session.current_user | tojson }};
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    new bootstrap.Tooltip(el);
+  });
+  toggleSupportDocs();
+});
+
+function toggleSupportDocs() {
+  const on = document.getElementById('supportDocsToggle')?.checked;
+  document.querySelectorAll('.support-doc-line').forEach(el => {
+    el.style.display = on ? 'inline' : 'none';
+  });
+  const disclaimer = document.getElementById('supportDocsDisclaimer');
+  if (disclaimer) disclaimer.style.display = on ? 'flex' : 'none';
+}
+
+function buildEmailHtml(withDocs) {
+  let items = '';
+  MERCHANT_TASKS.forEach((t, i) => {
+    items += `<li style="margin-bottom:8px;">${t.title}`;
+    if (withDocs && t.article) {
+      items += `<br><span style="font-size:0.9em;">📖 <a href="${t.article.url}" style="color:#1B1464;">${t.article.title}</a></span>`;
+    }
+    items += `</li>`;
+  });
+  return `<p>Hello,</p>
+<p>Here are your next action items:</p>
+<ol>${items}</ol>
+<p>Please try to complete these by ${TARGET_DATE}.</p>
+<p>Please let me know if you have any questions!</p>
+<p>${IE_NAME}</p>`;
+}
+
+function buildEmailPlain(withDocs) {
+  let items = '';
+  MERCHANT_TASKS.forEach((t, i) => {
+    items += `${i + 1}. ${t.title}\n`;
+    if (withDocs && t.article) {
+      items += `   📖 ${t.article.title}\n   ${t.article.url}\n`;
+    }
+  });
+  return `Hello,\n\nHere are your next action items:\n\n${items}\nPlease try to complete these by ${TARGET_DATE}.\n\nPlease let me know if you have any questions!\n\n${IE_NAME}`;
+}
+
+async function copyEmailBlock() {
+  const withDocs = document.getElementById('supportDocsToggle')?.checked;
+  const html = buildEmailHtml(withDocs);
+  const plain = buildEmailPlain(withDocs);
+  const btn = document.querySelector('[onclick="copyEmailBlock()"]');
+
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([plain], { type: 'text/plain' }),
+      })
+    ]);
+  } catch (e) {
+    // Fallback for browsers that don't support ClipboardItem
+    await navigator.clipboard.writeText(plain);
+  }
+
   btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
   btn.classList.replace('btn-outline-secondary', 'btn-success');
   setTimeout(() => {
