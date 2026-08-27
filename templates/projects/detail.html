@@ -49,6 +49,14 @@
         ···
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
+        {% if project['salesforce_link'] %}
+        <li>
+          <a class="dropdown-item" href="{{ project['salesforce_link'] }}" target="_blank" rel="noopener">
+            <i class="bi bi-box-arrow-up-right me-2"></i>Open Salesforce
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        {% endif %}
         <li>
           <form id="allTasksDoneForm" method="POST" action="{{ url_for('tasks_complete_all', project_id=project['id']) }}"></form>
           <form id="completeAllAndCloseForm" method="POST" action="{{ url_for('project_complete_all_and_close', project_id=project['id']) }}"></form>
@@ -376,6 +384,10 @@
                 </span>
               </label>
               <input type="date" name="target_go_live_date" class="form-control" value="{{ project['target_go_live_date'] or '' }}">
+            </div>
+            <div class="col-md-12">
+              <label class="form-label">Salesforce Link <span class="text-muted small fw-normal">(optional)</span></label>
+              <input type="url" name="salesforce_link" class="form-control" value="{{ project['salesforce_link'] or '' }}" placeholder="https://recharge.lightning.force.com/...">
             </div>
           </div>
         </div>

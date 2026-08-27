@@ -39,6 +39,8 @@ def migrate_db():
             message TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )""",
+        # v4 — add salesforce_link to projects
+        "ALTER TABLE projects ADD COLUMN salesforce_link TEXT",
     ]
 
     for v, sql in enumerate(migrations, start=1):
@@ -80,6 +82,7 @@ def init_db():
             actual_go_live_date DATE,
             notes TEXT,
             risk_flag INTEGER NOT NULL DEFAULT 0,
+            salesforce_link TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );

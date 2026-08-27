@@ -43,8 +43,8 @@ def create_project(data):
     c = db.cursor()
     c.execute(
         """INSERT INTO projects (name, merchant_name, template_type, status, ie_owner, platform,
-           contract_start_date, target_go_live_date, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           contract_start_date, target_go_live_date, notes, salesforce_link)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             data["name"],
             data.get("merchant_name", data["name"]),
@@ -55,6 +55,7 @@ def create_project(data):
             data.get("contract_start_date", ""),
             data.get("target_go_live_date", ""),
             data.get("notes", ""),
+            data.get("salesforce_link", ""),
         ),
     )
     project_id = c.lastrowid
@@ -140,7 +141,7 @@ def update_project(project_id, data):
     db.execute(
         """UPDATE projects SET name=?, merchant_name=?, ie_owner=?, platform=?,
            status=?, contract_start_date=?, target_go_live_date=?, actual_go_live_date=?,
-           notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+           notes=?, salesforce_link=?, updated_at=CURRENT_TIMESTAMP WHERE id=?""",
         (
             data.get("name"),
             data.get("merchant_name"),
@@ -151,6 +152,7 @@ def update_project(project_id, data):
             data.get("target_go_live_date"),
             data.get("actual_go_live_date") or None,
             data.get("notes"),
+            data.get("salesforce_link") or None,
             project_id,
         ),
     )

@@ -932,6 +932,7 @@ def _build_snapshot():
             "last_note": last_note,
             "last_note_date": last_note_date,
             "ai_status": ai_status,
+            "salesforce_link": p["salesforce_link"] or "",
         })
     db.close()
     return snapshot, today.isoformat()
@@ -970,10 +971,13 @@ def weekly_snapshot_csv():
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Merchant", "IE Owner", "Template", "SSD", "Current Milestone", "Go-Live Target", "Final Task Due Date", "% Complete", "Status", "Last Note", "Last Note Date", "Runway AI Status Update"])
+    writer.writerow(["Merchant", "Salesforce Link", "IE Owner", "Template", "SSD", "Current Milestone", "Go-Live Target", "Final Task Due Date", "% Complete", "Status", "Last Note", "Last Note Date", "Runway AI Status Update"])
     for p in snapshot:
+        _sf = p.get("salesforce_link") or ""
+        _sf_cell = f'=HYPERLINK("{_sf}","Salesforce")' if _sf else ""
         writer.writerow([
             p["merchant_name"],
+            _sf_cell,
             p["ie_owner"],
             tpl_labels.get(p["template_type"], p["template_type"] or ""),
             p["contract_start_date"],
@@ -1021,7 +1025,7 @@ def weekly_snapshot_ooo_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Merchant", "IE Owner", "Template", "SSD", "Current Milestone",
+        "Merchant", "Salesforce Link", "IE Owner", "Template", "SSD", "Current Milestone",
         "Go-Live Target", "Final Task Due Date", "% Complete", "Status",
         "Runway AI Status Update",
         "Last Note", "Last Note Date",
@@ -1115,8 +1119,11 @@ def weekly_snapshot_ooo_csv():
                 summary_parts.append("Watch out for: " + " | ".join(flagged[:3]))
         summary = " ".join(summary_parts)
 
+        _sf = p.get("salesforce_link") or ""
+        _sf_cell = f'=HYPERLINK("{_sf}","Salesforce")' if _sf else ""
         project_cols = [
             p["merchant_name"],
+            _sf_cell,
             p["ie_owner"],
             tpl_labels.get(p["template_type"], p["template_type"] or ""),
             p["contract_start_date"],
