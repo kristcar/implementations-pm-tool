@@ -796,6 +796,70 @@ def weekly_snapshot_csv():
     return response
 
 
+@app.route("/weekly-snapshot/ooo-csv")
+@login_required
+def weekly_snapshot_ooo_csv():
+    import csv, io
+    snapshot, today = _build_snapshot()
+    ie_filter = request.args.get("ie", "")
+    task_limit = max(1, min(20, int(request.args.get("tasks", 5))))
+    if ie_filter:
+        snapshot = [p for p in snapshot if p["ie_owner"] == ie_filter]
+    snapshot.sort(key=lambda x: (not x["is_late"], x["merchant_name"].lower()))
+
+    tpl_labels = {
+        "optimized_activation": "Recharge Optimized Activation",
+        "optimized_subscription_migration": "Recharge Optimized Subscription Migration",
+        "recharge_strategic_migration": "Recharge Strategic Implementation",
+        "skio": "Skio",
+        "store_optimization": "Store Optimization",
+    }
+
+    db = models.get_db()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Merchant", "IE Owner", "Template", "Current Milestone",
+        "Go-Live Target", "Final Task Due Date", "% Complete", "Status",
+        "Last Note", "Last Note Date",
+        "Immediate Next Task", "Task Owner", "Done?"
+    ])
+    for p in snapshot:
+        tasks = db.execute(
+            """SELECT t.title, t.owner FROM tasks t
+               LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+               WHERE t.project_id = ? AND t.status != 'complete'
+               ORDER BY COALESCE(tg.sort_order, 0), t.sort_order""",
+            (p["id"],)
+        ).fetchall()
+        project_cols = [
+            p["merchant_name"],
+            p["ie_owner"],
+            tpl_labels.get(p["template_type"], p["template_type"] or ""),
+            p["milestone"],
+            p["target_go_live_date"],
+            p["projected_end"],
+            f"{p['pct']}%",
+            "Late" if p["is_late"] else "On Time",
+            p["last_note"],
+            p["last_note_date"],
+        ]
+        if not tasks:
+            writer.writerow(project_cols + ["", "", ""])
+        else:
+            for i, t in enumerate(tasks[:task_limit]):
+                owner_label = "IE" if t["owner"] == "ie" else "Merchant"
+                row = (project_cols if i == 0 else [""] * len(project_cols))
+                writer.writerow(list(row) + [t["title"], owner_label, ""])
+        writer.writerow([])
+    db.close()
+
+    response = make_response(output.getvalue())
+    response.headers["Content-Type"] = "text/csv"
+    response.headers["Content-Disposition"] = f"attachment; filename=ooo-report-{today}.csv"
+    return response
+
+
 @app.route("/reporting")
 @login_required
 def reporting():
