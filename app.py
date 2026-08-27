@@ -894,12 +894,14 @@ def api_engaged():
             SELECT DISTINCT p.id, p.merchant_name, p.name
             FROM projects p
             LEFT JOIN tasks t ON t.project_id = p.id
+            LEFT JOIN project_notes n ON n.project_id = p.id
             WHERE p.status = 'active' AND p.ie_owner = ?
               AND (
                 (DATE(p.updated_at) BETWEEN ? AND ?)
                 OR (t.completed_at IS NOT NULL AND DATE(t.completed_at) BETWEEN ? AND ?)
+                OR (DATE(n.created_at) BETWEEN ? AND ?)
               )
-        """, (ie_filter, start_str, end_str, start_str, end_str)).fetchall()
+        """, (ie_filter, start_str, end_str, start_str, end_str, start_str, end_str)).fetchall()
         total_active = db.execute(
             "SELECT COUNT(*) as cnt FROM projects WHERE status = 'active' AND ie_owner = ?",
             (ie_filter,)
@@ -909,12 +911,14 @@ def api_engaged():
             SELECT DISTINCT p.id, p.merchant_name, p.name
             FROM projects p
             LEFT JOIN tasks t ON t.project_id = p.id
+            LEFT JOIN project_notes n ON n.project_id = p.id
             WHERE p.status = 'active'
               AND (
                 (DATE(p.updated_at) BETWEEN ? AND ?)
                 OR (t.completed_at IS NOT NULL AND DATE(t.completed_at) BETWEEN ? AND ?)
+                OR (DATE(n.created_at) BETWEEN ? AND ?)
               )
-        """, (start_str, end_str, start_str, end_str)).fetchall()
+        """, (start_str, end_str, start_str, end_str, start_str, end_str)).fetchall()
         total_active = db.execute(
             "SELECT COUNT(*) as cnt FROM projects WHERE status = 'active'"
         ).fetchone()["cnt"]

@@ -9,30 +9,34 @@
   </div>
 </div>
 
+{% macro tip(text) %}
+<i class="bi bi-info-circle ms-1 text-muted" style="font-size:0.75rem; cursor:default;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ text }}"></i>
+{% endmacro %}
+
 <!-- Summary stat cards -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid #3FA9F5;">
       <div class="fw-bold" style="font-size:1.75rem; color:#1B1464;">{{ active_on_time + active_late }}</div>
-      <div class="text-muted small">Active Projects</div>
+      <div class="text-muted small">Active Projects {{ tip("All projects with status = Active, regardless of timing.") }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-lime);">
       <div class="fw-bold" style="font-size:1.75rem; color:#3a7d13;">{{ active_on_time }}</div>
-      <div class="text-muted small">On Time</div>
+      <div class="text-muted small">On Time {{ tip("Active projects where the Contract Start Date (SSD) has not yet passed. For Store Optimization: assigned less than 40 days ago.") }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-red);">
       <div class="fw-bold" style="font-size:1.75rem; color:#c0000a;">{{ active_late }}</div>
-      <div class="text-muted small">Late</div>
+      <div class="text-muted small">Late {{ tip("Active projects where the Contract Start Date (SSD) is in the past. For Store Optimization: assignment date was 40+ days ago.") }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="card text-center py-3 px-2 h-100" style="border-top:3px solid var(--rc-purple);">
       <div class="fw-bold" style="font-size:1.75rem; color:var(--rc-purple);">{{ done }}</div>
-      <div class="text-muted small">Launched</div>
+      <div class="text-muted small">Launched {{ tip("Projects marked as Complete, all time.") }}</div>
     </div>
   </div>
 </div>
@@ -41,8 +45,8 @@
 <div class="card mb-4 p-4">
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
     <div>
-      <h6 class="fw-bold mb-0">Project Updates</h6>
-      <div class="text-muted small">Has had an update to the project in the given timeframe</div>
+      <h6 class="fw-bold mb-0">Project Activity {{ tip("A project counts as updated if any of the following happened in the window: a task was completed, a note was added, or any project field was edited (e.g. go-live date, IE owner).") }}</h6>
+      <div class="text-muted small">Projects with no task or note activity in the given timeframe</div>
     </div>
     <div class="d-flex align-items-center gap-2">
       <label class="text-muted small fw-semibold mb-0" style="white-space:nowrap;">IE Owner</label>
@@ -64,7 +68,7 @@
         <div class="d-flex align-items-center gap-4 mb-3">
           <div class="text-center">
             <div id="pct7" class="fw-bold" style="font-size:2.5rem; color:var(--rc-cobalt); line-height:1;">—</div>
-            <div class="text-muted small">Engaged</div>
+            <div class="text-muted small">Needs attention</div>
           </div>
           <div class="flex-grow-1">
             <div class="small text-muted mb-1" id="count7">Loading…</div>
@@ -73,9 +77,9 @@
             </div>
           </div>
         </div>
-        <div class="text-muted small fw-semibold mb-2">Disengaged merchants:</div>
+        <div class="text-muted small fw-semibold mb-2">Not updated:</div>
         <div id="merchants7" class="d-flex flex-wrap gap-2"></div>
-        <div id="empty7" class="text-muted small d-none">All merchants are engaged.</div>
+        <div id="empty7" class="text-muted small d-none">All projects have been updated recently.</div>
       </div>
     </div>
 
@@ -87,7 +91,7 @@
         <div class="d-flex align-items-center gap-4 mb-3">
           <div class="text-center">
             <div id="pct30" class="fw-bold" style="font-size:2.5rem; color:var(--rc-cobalt); line-height:1;">—</div>
-            <div class="text-muted small">Engaged</div>
+            <div class="text-muted small">Needs attention</div>
           </div>
           <div class="flex-grow-1">
             <div class="small text-muted mb-1" id="count30">Loading…</div>
@@ -96,9 +100,9 @@
             </div>
           </div>
         </div>
-        <div class="text-muted small fw-semibold mb-2">Disengaged merchants:</div>
+        <div class="text-muted small fw-semibold mb-2">Not updated:</div>
         <div id="merchants30" class="d-flex flex-wrap gap-2"></div>
-        <div id="empty30" class="text-muted small d-none">All merchants are engaged.</div>
+        <div id="empty30" class="text-muted small d-none">All projects have been updated recently.</div>
       </div>
     </div>
   </div>
@@ -110,8 +114,8 @@
   <!-- Active: Late vs On Track -->
   <div class="col-md-4">
     <div class="card h-100 p-4">
-      <h6 class="fw-bold mb-1">Active Projects</h6>
-      <div class="text-muted small mb-3">Late vs. On Track</div>
+      <h6 class="fw-bold mb-1">Active Projects {{ tip("Late = Contract Start Date (SSD) is in the past. For Store Optimization: late if assignment date is 40+ days ago. On Time = neither condition is met.") }}</h6>
+      <div class="text-muted small mb-3">Late vs. On Time</div>
       <div style="position:relative; height:220px;">
         <canvas id="activeStatusChart"></canvas>
       </div>
@@ -121,7 +125,7 @@
   <!-- Active by Pathway -->
   <div class="col-md-4">
     <div class="card h-100 p-4">
-      <h6 class="fw-bold mb-1">Active Projects</h6>
+      <h6 class="fw-bold mb-1">Active Projects {{ tip("Breakdown of currently active projects by implementation pathway (e.g. Skio, Store Optimization, Strategic Migration).") }}</h6>
       <div class="text-muted small mb-3">By Pathway</div>
       <div style="position:relative; height:220px;">
         <canvas id="activePathwayChart"></canvas>
@@ -132,7 +136,7 @@
   <!-- Launched by Pathway -->
   <div class="col-md-4">
     <div class="card h-100 p-4">
-      <h6 class="fw-bold mb-1">Launched Projects</h6>
+      <h6 class="fw-bold mb-1">Launched Projects {{ tip("All projects ever marked as Complete, broken down by pathway. Includes all time, not just the current period.") }}</h6>
       <div class="text-muted small">By Pathway</div>
       <div class="text-muted small mb-3" style="font-size:0.7rem; opacity:0.7;">All Time</div>
       <div style="position:relative; height:220px;">
@@ -148,7 +152,7 @@
   <!-- Project count by IE -->
   <div class="col-md-6">
     <div class="card p-4">
-      <h6 class="fw-bold mb-1">Project Count by IE</h6>
+      <h6 class="fw-bold mb-1">Project Count by IE {{ tip("Number of active projects currently assigned to each IE owner.") }}</h6>
       <div class="text-muted small mb-3">Active projects only</div>
       <div style="position:relative; height:260px;">
         <canvas id="ieCountChart"></canvas>
@@ -159,7 +163,7 @@
   <!-- Launching in next 2 weeks -->
   <div class="col-md-6">
     <div class="card p-4">
-      <h6 class="fw-bold mb-1">Projects Expected to Launch — Next 2 Weeks</h6>
+      <h6 class="fw-bold mb-1">Projects Expected to Launch — Next 2 Weeks {{ tip("Active projects whose go-live target date falls within the next 14 days from today, grouped by pathway.") }}</h6>
       <div class="text-muted small mb-3">Active projects with go-live within 14 days, by pathway</div>
       <div style="position:relative; height:260px;">
         <canvas id="upcomingChart"></canvas>
@@ -172,13 +176,18 @@
 
 {% block scripts %}
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+});
+
 function fmtDate(d) { return d.toISOString().slice(0, 10); }
 
 function renderPanel(data, suffix) {
-  document.getElementById('pct'   + suffix).textContent = data.pct + '%';
-  document.getElementById('bar'   + suffix).style.width = data.pct + '%';
+  const stalePct = data.total > 0 ? Math.round((data.total - data.engaged) / data.total * 100) : 0;
+  document.getElementById('pct'   + suffix).textContent = stalePct + '%';
+  document.getElementById('bar'   + suffix).style.width = stalePct + '%';
   document.getElementById('count' + suffix).textContent =
-    `${data.engaged} of ${data.total} active projects had activity`;
+    `${data.total - data.engaged} of ${data.total} projects not updated in this period`;
 
   const merchantEl = document.getElementById('merchants' + suffix);
   const emptyEl    = document.getElementById('empty'     + suffix);
@@ -268,7 +277,7 @@ new Chart(document.getElementById('activeStatusChart'), {
     labels: ['On Time', 'Late'],
     datasets: [{
       data: [{{ active_on_time }}, {{ active_late }}],
-      backgroundColor: [RC.lime, RC.red],
+      backgroundColor: ['#a855f7', '#f472b6'],
       borderWidth: 2,
       borderColor: '#fff',
     }]
