@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+{% set target_fmt = '[target date]' %}
+<style>
+  body { background: #f8f9ff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .drawer-body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .drawer-header { padding: 14px 18px; border-bottom: 1px solid #e5e7eb; background: #fff; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; }
+  .drawer-content { display: flex; flex: 1; overflow: hidden; }
+  .notes-col { flex: 1; overflow-y: auto; padding: 16px; border-right: 1px solid #e5e7eb; }
+  .helper-col { width: 340px; overflow-y: auto; padding: 16px; background: #fff; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="drawer-body">
+  <div class="drawer-header">
+    <div class="fw-semibold" style="font-size:0.88rem; color:#1B1464;">
+      {% if panel == 'helper' %}<i class="bi bi-stars me-2" style="color:#8b5cf6;"></i>AI Assistant{% else %}<i class="bi bi-chat-left-text me-2"></i>Notes{% endif %} — {{ project['name'] }}
+    </div>
+    <button onclick="window.parent.closeNotesDrawer()" class="btn btn-sm btn-outline-secondary" style="font-size:0.78rem;">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="drawer-content">
+
+    <!-- Notes feed -->
+    <div class="notes-col" {% if panel == 'helper' %}style="display:none;"{% endif %}>
+      {% if notes %}
+      {% for note in notes %}
+      <div class="d-flex gap-3 mb-4">
+        <div class="flex-shrink-0">
+          <span style="background:var(--rc-cobalt); color:#fff; font-size:0.7rem; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700;">
+            {{ note['author'].split()[0][0] }}{{ note['author'].split()[-1][0] if note['author'].split()|length > 1 else '' }}
+          </span>
+        </div>
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-baseline gap-2 mb-1">
+            <span class="fw-semibold small" style="color:#1B1464;">{{ note['author'] }}</span>
+            <span class="text-muted" style="font-size:0.7rem;">{{ note['created_at'][:16].replace('T', ' ') }}</span>
+            {% if note['author'] == session.current_user %}
+            <form method="POST" action="{{ url_for('project_notes_delete', project_id=project['id'], note_id=note['id']) }}" style="display:inline; margin-left:auto;">
+              <button type="submit" class="btn btn-link p-0 text-muted" style="font-size:0.7rem;" onclick="return confirm('Delete this note?')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          <div style="font-size:0.87rem; color:#374151; line-height:1.5; white-space:pre-wrap;">{{ note['message'] }}</div>
+        </div>
+      </div>
+      {% if not loop.last %}<hr class="my-3" style="opacity:0.1;">{% endif %}
+      {% endfor %}
+      {% else %}
+      <div class="text-center text-muted py-5" style="font-size:0.9rem;">
+        <i class="bi bi-chat-left-text mb-2 d-block" style="font-size:1.5rem; opacity:0.3;"></i>
+        No notes yet. Add the first one below.
+      </div>
+      {% endif %}
+
+      <!-- Add note -->
+      <div class="mt-4">
+        <form method="POST" action="{{ url_for('project_notes_add', project_id=project['id']) }}?embedded=1">
+          <textarea name="message" class="form-control mb-2" rows="3" placeholder="Add a note…" required style="font-size:0.87rem; resize:vertical;"></textarea>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary btn-sm px-4">
+              <i class="bi bi-send me-1"></i>Add Note
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Follow Up Helper -->
+    <div class="helper-col" {% if panel == 'notes' %}style="display:none;"{% else %}style="width:{% if panel == 'helper' %}100%{% else %}340px{% endif %};"{% endif %}>
+      <div class="fw-semibold mb-3" style="font-size:0.78rem; letter-spacing:0.06em; text-transform:uppercase; color:#9ca3af;">
+        <i class="bi bi-lightning-charge me-1 text-primary"></i>Follow Up Helper
+      </div>
+
+      {% if next_tasks %}
+      <div class="mb-3">
+        <div class="text-muted small fw-semibold mb-2" style="letter-spacing:0.04em; font-size:0.7rem;">NEXT UP</div>
+        <table style="width:100%; border-collapse:collapse;">
+        {% for task in next_tasks %}
+        <tr style="vertical-align:top;">
+          <td style="width:80px; padding-bottom:10px; padding-right:10px;">
+            <span class="badge owner-badge owner-{{ task['owner'] }}" style="display:block; text-align:center;">{{ task['owner']|upper }}</span>
+          </td>
+          <td style="padding-bottom:10px;">
+            <div style="font-size:0.83rem; color:#1a1a2e; font-weight:500;">{{ task['title'] }}</div>
+            {% if task['group_name'] %}
+            <div class="text-muted" style="font-size:0.68rem;">{{ task['group_name'] }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </table>
+      </div>
+      {% else %}
+      <div class="text-muted small text-center py-2 mb-3">🎉 All tasks complete!</div>
+      {% endif %}
+
+      {% if merchant_tasks %}
+      {% set due_dates = merchant_tasks | selectattr('due_date') | map(attribute='due_date') | list %}
+      {% set target_date = due_dates | max if due_dates else None %}
+      {% if target_date %}
+        {% set td_parts = target_date.split('-') %}
+        {% set target_fmt = td_parts[1] + '/' + td_parts[2] + '/' + td_parts[0][2:] %}
+      {% else %}
+        {% set target_fmt = '[target date]' %}
+      {% endif %}
+      <hr style="opacity:0.15;">
+      <div class="text-muted small fw-semibold mb-2" style="letter-spacing:0.04em; font-size:0.7rem;">MERCHANT EMAIL BLOCK</div>
+
+      <div class="mb-2">
+        <div class="form-check form-switch mb-1">
+          <input class="form-check-input" type="checkbox" id="supportDocsToggle" onchange="toggleSupportDocs()" checked>
+          <label class="form-check-label small" for="supportDocsToggle" style="font-size:0.78rem;">Include support documents</label>
+        </div>
+        <div id="supportDocsDisclaimer" class="text-muted align-items-start gap-2" style="font-size:0.7rem; display:flex; padding-left:2.25rem;">
+          <i class="bi bi-stars flex-shrink-0" style="color:#8b5cf6; font-size:0.82rem; margin-top:1px;"></i>
+          <span>Powered by AI search. Links may not be perfect, spot-check before you send.</span>
+        </div>
+      </div>
+
+      <div id="emailPreview" style="font-size:0.75rem; background:#f8f9ff; color:#374151; font-family:monospace; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; padding:0.65rem 0.9rem; white-space:pre-wrap; margin-bottom:8px;">Hello,
+
+Here are your next action items:
+{% for item in merchant_tasks_with_articles %}{{ loop.index }}. {{ item.task['title'] }}<span class="support-doc-line">
+   📖 <a href="{{ item.article.url if item.article else '#' }}" target="_blank" style="color:var(--rc-cobalt); font-size:0.72rem;">{{ item.article.title if item.article else '(no article found)' }}</a></span>
+{% endfor %}
+Please try to complete these by {{ target_fmt }}.
+
+Please let me know if you have any questions!
+
+{{ session.current_user }}</div>
+
+      <button onclick="copyEmailBlock()" class="btn btn-sm btn-outline-secondary w-100" style="font-size:0.75rem;">
+        <i class="bi bi-clipboard me-1"></i>Copy to Clipboard
+      </button>
+      {% else %}
+      <hr style="opacity:0.15;">
+      <div class="text-muted small text-center py-2">No pending merchant tasks.</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const MERCHANT_TASKS = [
+  {% for item in merchant_tasks_with_articles %}
+  { title: {{ item.task['title'] | tojson }}, article: {% if item.article %}{ title: {{ item.article.title | tojson }}, url: {{ item.article.url | tojson }} }{% else %}null{% endif %} }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+const MERCHANT_DUE_DATES = [{% for t in merchant_tasks %}{% if t['due_date'] %}{{ t['due_date'] | tojson }}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}];
+const TARGET_DATE = (() => {
+  if (!MERCHANT_DUE_DATES.length) return '[target date]';
+  const iso = MERCHANT_DUE_DATES.sort().at(-1);
+  const [y, m, d] = iso.split('-');
+  return `${m}/${d}/${y.slice(2)}`;
+})();
+const IE_NAME = {{ session.current_user | tojson }};
+
+toggleSupportDocs();
+
+function toggleSupportDocs() {
+  const on = document.getElementById('supportDocsToggle')?.checked;
+  document.querySelectorAll('.support-doc-line').forEach(el => el.style.display = on ? 'inline' : 'none');
+  const d = document.getElementById('supportDocsDisclaimer');
+  if (d) d.style.display = on ? 'flex' : 'none';
+}
+
+function buildEmailHtml(withDocs) {
+  let items = '';
+  MERCHANT_TASKS.forEach(t => {
+    items += `<li style="margin-bottom:8px;">${t.title}`;
+    if (withDocs && t.article) items += `<br><span style="font-size:0.9em;">📖 <a href="${t.article.url}" style="color:#1B1464;">${t.article.title}</a></span>`;
+    items += `</li>`;
+  });
+  return `<p>Hello,</p><p>Here are your next action items:</p><ol>${items}</ol><p>Please try to complete these by ${TARGET_DATE}.</p><p>Please let me know if you have any questions!</p><p>${IE_NAME}</p>`;
+}
+
+function buildEmailPlain(withDocs) {
+  let items = '';
+  MERCHANT_TASKS.forEach((t, i) => {
+    items += `${i + 1}. ${t.title}\n`;
+    if (withDocs && t.article) items += `   📖 ${t.article.title}\n   ${t.article.url}\n`;
+  });
+  return `Hello,\n\nHere are your next action items:\n\n${items}\nPlease try to complete these by ${TARGET_DATE}.\n\nPlease let me know if you have any questions!\n\n${IE_NAME}`;
+}
+
+async function copyEmailBlock() {
+  const withDocs = document.getElementById('supportDocsToggle')?.checked;
+  const btn = document.querySelector('[onclick="copyEmailBlock()"]');
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([buildEmailHtml(withDocs)], { type: 'text/html' }),
+        'text/plain': new Blob([buildEmailPlain(withDocs)], { type: 'text/plain' }),
+      })
+    ]);
+  } catch (e) {
+    await navigator.clipboard.writeText(buildEmailPlain(withDocs));
+  }
+  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+  btn.classList.replace('btn-outline-secondary', 'btn-success');
+  setTimeout(() => {
+    btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy to Clipboard';
+    btn.classList.replace('btn-success', 'btn-outline-secondary');
+  }, 2000);
+}
+</script>
+</body>
+</html>

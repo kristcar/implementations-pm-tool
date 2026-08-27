@@ -491,9 +491,13 @@ def project_notes(project_id):
         article = _fetch_support_article(t["title"])
         merchant_tasks_with_articles.append({"task": t, "article": article})
 
-    return render_template("projects/notes.html", project=project, notes=notes,
+    embedded = request.args.get("embedded") == "1"
+    panel = request.args.get("panel", "notes")
+    template = "projects/notes_embedded.html" if embedded else "projects/notes.html"
+    return render_template(template, project=project, notes=notes,
                            next_tasks=next_tasks, merchant_tasks=merchant_tasks,
-                           merchant_tasks_with_articles=merchant_tasks_with_articles)
+                           merchant_tasks_with_articles=merchant_tasks_with_articles,
+                           panel=panel)
 
 
 @app.route("/projects/<int:project_id>/notes/add", methods=["POST"])
@@ -508,7 +512,8 @@ def project_notes_add(project_id):
         )
         db.commit()
         db.close()
-    return redirect(url_for("project_notes", project_id=project_id))
+    embedded = request.args.get("embedded") == "1"
+    return redirect(url_for("project_notes", project_id=project_id, embedded="1" if embedded else None))
 
 
 @app.route("/projects/<int:project_id>/notes/<int:note_id>/delete", methods=["POST"])

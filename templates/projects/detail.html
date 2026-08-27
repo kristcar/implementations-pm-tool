@@ -2,44 +2,48 @@
 {% block title %}{{ project['name'] }} — Implementations PM{% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb" class="mb-1">
-  <ol class="breadcrumb mb-0">
-    <li class="breadcrumb-item"><a href="{{ url_for('project_list') }}">Projects</a></li>
-    <li class="breadcrumb-item active">{{ project['name'] }}</li>
-  </ol>
-</nav>
+<div class="mb-1" style="font-size:0.78rem; color:#9ca3af;">
+  <a href="{{ url_for('project_list') }}" style="color:#9ca3af; text-decoration:none;" onmouseover="this.style.color='#1B1464'" onmouseout="this.style.color='#9ca3af'">All Projects</a>
+  <span style="margin:0 5px;">›</span>
+  <span style="color:#6b7280;">{{ project['name'] }}</span>
+</div>
 
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
   <h4 class="fw-bold mb-0">{{ project['name'] }}</h4>
   <div class="d-flex align-items-center gap-2">
-    <a href="{{ url_for('project_notes', project_id=project['id']) }}" class="btn btn-outline-secondary btn-sm">
-      <i class="bi bi-chat-left-text me-1"></i>Notes & AI Assistant
-    </a>
-    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editProjectModal">
-      <i class="bi bi-pencil me-1"></i>Edit
+    <button class="fun-btn btn btn-sm" style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; color:#3730a3; font-weight:600; padding:6px 13px; font-size:0.82rem;" onclick="burst(this); openNotesDrawer('helper')">
+      ✨ AI Assistant
     </button>
-    <form method="POST" action="{{ url_for('project_edit', project_id=project['id']) }}" style="display:inline;">
-      {% if project['status'] == 'complete' %}
-        <input type="hidden" name="status" value="active">
-        <input type="hidden" name="name" value="{{ project['name'] }}">
-        <button type="submit" class="btn btn-sm btn-outline-secondary"
-                onclick="return confirm('Reopen this project?')">
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Reopen
-        </button>
-      {% else %}
-        <input type="hidden" name="status" value="complete">
-        <input type="hidden" name="name" value="{{ project['name'] }}">
-        <button type="submit" class="btn btn-sm fw-semibold"
-                style="background:#16a34a; color:#fff; border:none;"
-                onclick="return confirm('Mark this project as Done?')">
-          <i class="bi bi-trophy me-1"></i>Mark done
-        </button>
-      {% endif %}
+    <button class="fun-btn btn btn-sm" style="background:#fff; border:1px solid #1B1464; border-radius:8px; color:#1B1464; font-weight:500; padding:6px 13px; font-size:0.82rem;" onclick="burst(this); openNotesDrawer('notes')">
+      📝 Notes
+    </button>
+    <button class="fun-btn btn btn-sm" style="background:#fff; border:1px solid #1B1464; border-radius:8px; color:#1B1464; font-weight:500; padding:6px 13px; font-size:0.82rem;" data-bs-toggle="modal" data-bs-target="#editProjectModal" onclick="burst(this)">
+      ✏️ Edit
+    </button>
+    {% if project['status'] == 'complete' %}
+    <form id="reopenProjectForm" method="POST" action="{{ url_for('project_edit', project_id=project['id']) }}" style="display:none;">
+      <input type="hidden" name="status" value="active">
+      <input type="hidden" name="name" value="{{ project['name'] }}">
     </form>
+    <button type="button" class="fun-btn btn btn-sm" style="background:#fff; border:1px solid #1B1464; border-radius:8px; color:#1B1464; font-weight:500; padding:6px 13px; font-size:0.82rem;"
+            onclick="burst(this); bootstrap.Modal.getOrCreateInstance(document.getElementById('reopenProjectModal')).show()">
+      🔄 Reopen
+    </button>
+    {% else %}
+    <form id="markProjectDoneForm" method="POST" action="{{ url_for('project_edit', project_id=project['id']) }}" style="display:none;">
+      <input type="hidden" name="status" value="complete">
+      <input type="hidden" name="name" value="{{ project['name'] }}">
+    </form>
+    <button type="button" class="fun-btn btn btn-sm fw-semibold"
+            style="background:#fff; border:1px solid #1B1464; border-radius:8px; color:#1B1464; padding:6px 14px; font-size:0.82rem;"
+            onclick="burst(this); bootstrap.Modal.getOrCreateInstance(document.getElementById('markProjectDoneModal')).show()">
+      🏆 Mark done
+    </button>
+    {% endif %}
     <!-- More actions -->
     <div class="dropdown">
-      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown" title="More actions">
-        <i class="bi bi-three-dots"></i>
+      <button class="fun-btn btn btn-sm" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; color:#6b7280; padding:6px 12px; font-size:0.82rem; font-weight:600;" data-bs-toggle="dropdown" title="More actions" onclick="burst(this)">
+        ···
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
         <li>
@@ -119,7 +123,7 @@
       {% if project['contract_start_date'] %}
       <div class="info-field-divider"></div>
       <div class="info-field">
-        <div class="info-field-label">{% if project['template_type'] == 'store_optimization' %}Assigned{% else %}Start date{% endif %}</div>
+        <div class="info-field-label">{% if project['template_type'] == 'store_optimization' %}Assigned{% else %}Contract Start (SSD){% endif %}</div>
         <div class="info-field-value">{{ project['contract_start_date'] }}</div>
       </div>
       {% endif %}
@@ -371,7 +375,14 @@
               <input type="date" name="contract_start_date" class="form-control" value="{{ project['contract_start_date'] or '' }}">
             </div>
             <div class="col-md-4">
-              <label class="form-label">Target Go-Live</label>
+              <label class="form-label d-flex align-items-center gap-2">
+                Target Go-Live
+                <span tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top"
+                      title="Changing this date here does NOT update task due dates. Use the Reschedule button next to the Go-Live Target in the project header to auto-adjust all task dates."
+                      style="cursor:pointer; color:#9ca3af; font-size:0.85rem; line-height:1;">
+                  <i class="bi bi-info-circle"></i>
+                </span>
+              </label>
               <input type="date" name="target_go_live_date" class="form-control" value="{{ project['target_go_live_date'] or '' }}">
             </div>
           </div>
@@ -567,6 +578,53 @@
   </div>
 </div>
 
+<!-- Notes drawer -->
+<div id="notesDrawerOverlay" onclick="closeNotesDrawer()"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:1040;"></div>
+<div id="notesDrawer"
+     style="display:none; position:fixed; top:0; right:0; height:100vh; width:min(780px, 90vw);
+            background:#f8f9ff; z-index:1045; box-shadow:-4px 0 24px rgba(0,0,0,0.12);
+            transition:transform 0.25s ease; transform:translateX(100%);">
+  <iframe id="notesDrawerFrame"
+          src=""
+          style="width:100%; height:100%; border:none;"
+          title="Notes & AI Assistant"></iframe>
+</div>
+
+<!-- Reopen Project modal -->
+<div class="modal fade" id="reopenProjectModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-body text-center px-4 pt-4 pb-3">
+        <div style="font-size:2.5rem; margin-bottom:12px;">🔄</div>
+        <h5 class="fw-bold mb-2">Reopen this project?</h5>
+        <p class="text-muted small mb-0">This will move the project back to active status.</p>
+      </div>
+      <div class="modal-footer border-0 pt-0 pb-4 d-flex gap-2 justify-content-center">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn px-4 fw-semibold" onclick="document.getElementById('reopenProjectForm').submit()" style="background:#1B1464; color:#fff; border:none;">🔄 Yes, reopen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mark Project Done modal -->
+<div class="modal fade" id="markProjectDoneModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-body text-center px-4 pt-4 pb-3">
+        <div style="font-size:2.5rem; margin-bottom:12px;">🏆</div>
+        <h5 class="fw-bold mb-2">Mark project as Done?</h5>
+        <p class="text-muted small mb-0">This will close the project and mark it as complete.</p>
+      </div>
+      <div class="modal-footer border-0 pt-0 pb-4 d-flex gap-2 justify-content-center">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn px-4 fw-semibold" onclick="document.getElementById('markProjectDoneForm').submit()" style="background:#16a34a; color:#fff; border:none;">🎉 Yes, close project!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Mark All Tasks Done modal -->
 <div class="modal fade" id="markAllDoneModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
@@ -607,10 +665,45 @@
 {% block scripts %}
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+});
+
+function burst(btn) {
+  btn.style.transition = 'transform 0.08s ease-out';
+  btn.style.transform = 'scale(1.08)';
+  setTimeout(() => {
+    btn.style.transform = 'scale(0.96)';
+    setTimeout(() => {
+      btn.style.transform = '';
+      setTimeout(() => btn.style.transition = '', 120);
+    }, 80);
+  }, 80);
+}
+
+function openNotesDrawer(panel) {
+  const drawer = document.getElementById('notesDrawer');
+  const overlay = document.getElementById('notesDrawerOverlay');
+  const frame = document.getElementById('notesDrawerFrame');
+  const url = '{{ url_for("project_notes", project_id=project["id"]) }}?embedded=1&panel=' + panel;
+  frame.src = url;
+  drawer.style.display = 'block';
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => { drawer.style.transform = 'translateX(0)'; });
+}
+
+function closeNotesDrawer() {
+  const drawer = document.getElementById('notesDrawer');
+  const overlay = document.getElementById('notesDrawerOverlay');
+  drawer.style.transform = 'translateX(100%)';
+  overlay.style.display = 'none';
+  setTimeout(() => { drawer.style.display = 'none'; }, 250);
+}
+
 function markAllTasksDone() {
   document.getElementById('markAllStep1').style.display = 'block';
   document.getElementById('markAllStep2').style.display = 'none';
-  new bootstrap.Modal(document.getElementById('markAllDoneModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('markAllDoneModal')).show();
 }
 function showMarkAllStep2() {
   document.getElementById('markAllStep1').style.display = 'none';
@@ -672,7 +765,7 @@ async function toggleTaskDone(taskId) {
   }
   document.getElementById('overall-progress-bar').style.width = data.progress.pct + '%';
   if (data.status === 'complete' && data.progress.pct === 100) {
-    const modal = new bootstrap.Modal(document.getElementById('allTasksDoneModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('markAllDoneModal'));
     modal.show();
   }
 }
