@@ -57,27 +57,27 @@
         <div class="card-body">
           <div class="row g-3">
             <div class="col-md-12">
-              <label class="form-label">Merchant Name <span class="text-danger">*</span></label>
+              <label class="form-label">Merchant Name <span style="color:#ec4899;">*</span></label>
               <input type="text" name="merchant_name" id="merchant_name" class="form-control" placeholder="Acme Co" required>
               <input type="hidden" name="name" id="name_hidden">
             </div>
             <div class="col-md-12">
-              <label class="form-label">Implementation Engineer</label>
-              <select name="ie_owner" class="form-select">
+              <label class="form-label">Implementation Engineer <span style="color:#ec4899;">*</span></label>
+              <select name="ie_owner" class="form-select" required>
                 <option value="">— Select IE —</option>
                 {% for ie in ie_owners %}
-                <option value="{{ ie }}">{{ ie }}</option>
+                <option value="{{ ie }}" {% if ie == session.current_user %}selected{% endif %}>{{ ie }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label" id="contract_start_label">Contract Start Date</label>
-              <input type="date" name="contract_start_date" class="form-control">
-              <div class="form-text" id="contract_start_help">Used to calculate task due dates from the template.</div>
+              <label class="form-label" id="contract_start_label">Contract Start Date <span style="color:#ec4899;">*</span></label>
+              <input type="date" name="contract_start_date" class="form-control" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Target Go-Live Date</label>
-              <input type="date" name="target_go_live_date" class="form-control">
+              <label class="form-label">Target Go-Live Date <span style="color:#ec4899;">*</span></label>
+              <input type="date" name="target_go_live_date" class="form-control" required>
+              <div class="form-text" id="contract_start_help">Sets the end point for task due date distribution.</div>
             </div>
           </div>
         </div>
@@ -100,7 +100,7 @@ document.querySelector('form').addEventListener('submit', function() {
 
 function updateStartDateLabel() {
   const isStoreOpt = document.getElementById('tpl_store_optimization').checked;
-  document.getElementById('contract_start_label').textContent = isStoreOpt ? 'Project Assignment Date' : 'Contract Start Date';
+  document.getElementById('contract_start_label').innerHTML = (isStoreOpt ? 'Project Assignment Date' : 'Contract Start Date') + ' <span style="color:#ec4899;">*</span>';
   document.getElementById('contract_start_help').textContent = isStoreOpt
     ? 'Project is considered Late if not marked Done within 40 days of this date.'
     : 'Used to calculate task due dates from the template.';
